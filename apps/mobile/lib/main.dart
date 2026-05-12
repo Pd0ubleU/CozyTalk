@@ -27,6 +27,7 @@ import 'screens/select_background_screen.dart';
 import 'screens/join_room_id_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/group_chat_screen.dart';
+import 'screens/admin_console_screen.dart';
 
 const _useEmulator = bool.fromEnvironment('USE_EMULATOR', defaultValue: true);
 
@@ -77,6 +78,7 @@ class MyApp extends StatelessWidget {
           AppRoutes.joinRoomId:       (_) => const JoinRoomIdScreen(),
           AppRoutes.chatScreen:       (_) => const ChatScreen(),
           AppRoutes.groupChatScreen:  (_) => const GroupChatScreen(),
+          AppRoutes.adminConsole:     (_) => const AdminConsoleScreen(),
         },
       );
     }

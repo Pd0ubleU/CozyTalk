@@ -15,4 +15,5 @@ class AppRoutes {
   static const String joinRoomId       = '/join-room';
   static const String chatScreen       = '/chat';
   static const String groupChatScreen  = '/group-chat';
+  static const String adminConsole     = '/admin';
 }
