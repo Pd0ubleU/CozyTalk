@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../shared/layered_avatar.dart';
 
 // ─── Design tokens ───
 class AdminC {
@@ -90,36 +91,37 @@ const kBanReasons = [
   'Others',
 ];
 
-// ─── Pixel-style mascot avatar ───
-const _mascotBgs = [
-  Color(0xFFF4D6BE), Color(0xFFE2D8F0), Color(0xFFD4E9D6),
-  Color(0xFFFAE3C9), Color(0xFFE9D2C9), Color(0xFFCFDEEA),
-  Color(0xFFF5DFDF), Color(0xFFDEE6CF), Color(0xFFE7D6BB),
-];
-
+// ─── User avatar (LayeredAvatar) ───
 class AdminMascotAvatar extends StatelessWidget {
-  final int seed;
   final double size;
   final bool? online;
-  const AdminMascotAvatar({super.key, required this.seed, this.size = 48, this.online});
+  const AdminMascotAvatar({super.key, this.size = 48, this.online});
 
   @override
   Widget build(BuildContext context) {
-    final bg = _mascotBgs[seed % _mascotBgs.length];
     return Stack(
       children: [
         Container(
           width: size, height: size,
-          decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(14)),
-          child: Center(
-            child: Icon(Icons.person, color: AdminC.brownDarker, size: size * 0.55),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.grey.shade200, width: 1.5),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .06), blurRadius: 6, offset: const Offset(0, 2))],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: EdgeInsets.only(top: size * 0.1),
+              child: Center(child: LayeredAvatar(boxSize: size)),
+            ),
           ),
         ),
         if (online != null)
           Positioned(
-            right: 2, bottom: 2,
+            right: -2, bottom: -2,
             child: Container(
-              width: size * .22, height: size * .22,
+              width: size * .24, height: size * .24,
               decoration: BoxDecoration(
                 color: online! ? const Color(0xFF5BBE6B) : const Color(0xFFB5ADA4),
                 shape: BoxShape.circle,

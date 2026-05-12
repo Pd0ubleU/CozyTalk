@@ -4,9 +4,8 @@ import 'admin_shared.dart';
 // ─── Report Card ───
 class AdminReportCard extends StatelessWidget {
   final AdminReport report;
-  final int seed;
   final VoidCallback onTap;
-  const AdminReportCard({super.key, required this.report, required this.seed, required this.onTap});
+  const AdminReportCard({super.key, required this.report, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +21,7 @@ class AdminReportCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AdminMascotAvatar(seed: seed, size: 48),
+            AdminMascotAvatar(size: 48),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -127,9 +126,9 @@ class _AdminReportsTabState extends State<AdminReportsTab> {
             }).toList(),
           ),
         ),
-        ...filtered.asMap().entries.map((e) => Padding(
+        ...filtered.map((r) => Padding(
           padding: const EdgeInsets.only(bottom: 10),
-          child: AdminReportCard(report: e.value, seed: e.key + 2, onTap: () => widget.onOpen(e.value)),
+          child: AdminReportCard(report: r, onTap: () => widget.onOpen(r)),
         )),
         if (filtered.isEmpty)
           Padding(

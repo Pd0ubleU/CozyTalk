@@ -174,7 +174,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
         child: Row(
           children: [
             SvgPicture.asset(
-              'assets/images/LogOut.svg',
+              'assets/images/icons/LogOut.svg',
               width: 20, height: 20,
               colorFilter: const ColorFilter.mode(Color.fromARGB(255, 0, 0, 0), BlendMode.srcIn),
             ),
@@ -208,7 +208,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                   decoration: BoxDecoration(color: _C.redSoft, borderRadius: BorderRadius.circular(14)),
                   child: Center(
                     child: SvgPicture.asset(
-                      'assets/images/LogOut.svg',
+                      'assets/images/icons/LogOut.svg',
                       width: 26, height: 26,
                       colorFilter: const ColorFilter.mode(Color(0xFF9F2A18), BlendMode.srcIn),
                     ),
@@ -249,7 +249,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               SvgPicture.asset(
-                                'assets/images/LogOut.svg',
+                                'assets/images/icons/LogOut.svg',
                                 width: 16, height: 16,
                                 colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
                               ),

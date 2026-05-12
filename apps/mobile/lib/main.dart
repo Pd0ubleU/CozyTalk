@@ -60,7 +60,8 @@ class MyApp extends StatelessWidget {
         title: 'CozyTalk',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.theme,
-        initialRoute: AppRoutes.adminConsole, // TODO: revert to AppRoutes.home
+        initialRoute: AppRoutes.adminConsole,
+        //initialRoute: AppRoutes.home, // TODO: revert to AppRoutes.home
         routes: {
           AppRoutes.home:             (_) => const HomeScreen(),
           AppRoutes.notification:     (_) => const NotificationScreen(),

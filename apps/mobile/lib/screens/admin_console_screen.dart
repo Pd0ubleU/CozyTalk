@@ -19,12 +19,12 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
   String _query = '';
 
   final List<AdminReport> _reports = [
-    AdminReport(id: 'r1', status: 'pending',  reporter: 'Somtum',    reported: 'PhakYou',    reasons: ['Harassment or Bullying'],                         context: "He kept sending mean messages and called me names after I said I didn't want to keep chatting.", time: '3m ago',    evidence: 2, severity: 'high', room: 'Kao Tapu',       roomId: 'AWD3V'),
-    AdminReport(id: 'r2', status: 'pending',  reporter: 'Mitsuru',   reported: 'TrueLove99', reasons: ['Spam & Scams'],                                    context: 'Sent me a link to a sketchy site asking for my phone number and bank info.',                        time: '18m ago',  evidence: 1, severity: 'high', room: 'Red Lotus Lake', roomId: 'BLK7R'),
-    AdminReport(id: 'r3', status: 'pending',  reporter: 'KaiTom',    reported: 'NongPrae',   reasons: ['Exposing private identifying information'],          context: 'Posted my full name and school in the group chat without my permission.',                          time: '42m ago',  evidence: 3, severity: 'med',  room: 'Sea of Cloud',   roomId: 'CXP2M'),
-    AdminReport(id: 'r4', status: 'pending',  reporter: 'Platoo',    reported: 'Somjeed',    reasons: ['Others'],                                           context: 'Was being weirdly aggressive but nothing specific yet.',                                            time: '1h ago',   evidence: 0, severity: 'low',  room: 'Lumphini Park',  roomId: 'DYQ9T'),
-    AdminReport(id: 'r5', status: 'pending',  reporter: 'Anonymous', reported: 'CoolGuy42',  reasons: ['Harassment or Bullying', 'Others'],                 context: 'Repeatedly DMs after being told no.',                                                              time: '2h ago',   evidence: 1, severity: 'med',  room: 'Kao Tapu',       roomId: 'EZN4W'),
-    AdminReport(id: 'r6', status: 'resolved', reporter: 'NongPrae',  reported: 'SpamBot7',   reasons: ['Spam & Scams'],                                    context: 'Crypto giveaway scam.',                                                                             time: 'Yesterday', evidence: 2, severity: 'high', room: 'Red Lotus Lake', roomId: 'FXJ6S'),
+    AdminReport(id: 'r1', status: 'pending',  reporter: 'Somtum',    reported: 'PhakYou',    reasons: ['Harassment or Bullying'],                        context: "He kept sending mean messages and called me names after I said I didn't want to keep chatting.", time: '3m ago',    evidence: 2, severity: 'high', room: 'Kao Tapu',       roomId: 'AWD3V'),
+    AdminReport(id: 'r2', status: 'pending',  reporter: 'Mitsuru',   reported: 'TrueLove99', reasons: ['Spam & Scams'],                                   context: 'Sent me a link to a sketchy site asking for my phone number and bank info.',                        time: '18m ago',  evidence: 1, severity: 'high', room: 'Red Lotus Lake', roomId: 'BLK7R'),
+    AdminReport(id: 'r3', status: 'pending',  reporter: 'KaiTom',    reported: 'NongPrae',   reasons: ['Exposing private identifying information'],         context: 'Posted my full name and school in the group chat without my permission.',                          time: '42m ago',  evidence: 3, severity: 'med',  room: 'Sea of Cloud',   roomId: 'CXP2M'),
+    AdminReport(id: 'r4', status: 'pending',  reporter: 'Platoo',    reported: 'Somjeed',    reasons: ['Others'],                                          context: 'Was being weirdly aggressive but nothing specific yet.',                                            time: '1h ago',   evidence: 0, severity: 'low',  room: 'Lumphini Park',  roomId: 'DYQ9T'),
+    AdminReport(id: 'r5', status: 'pending',  reporter: 'Anonymous', reported: 'CoolGuy42',  reasons: ['Harassment or Bullying', 'Others'],                context: 'Repeatedly DMs after being told no.',                                                              time: '2h ago',   evidence: 1, severity: 'med',  room: 'Kao Tapu',       roomId: 'EZN4W'),
+    AdminReport(id: 'r6', status: 'resolved', reporter: 'NongPrae',  reported: 'SpamBot7',   reasons: ['Spam & Scams'],                                   context: 'Crypto giveaway scam.',                                                                             time: 'Yesterday', evidence: 2, severity: 'high', room: 'Red Lotus Lake', roomId: 'FXJ6S'),
   ];
 
   final List<AdminUser> _users = [
@@ -41,9 +41,9 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
   ];
 
   final List<BannedUser> _banned = [
-    BannedUser(id: 'b1', name: 'SpamBot7', reason: 'Spam & Scams',                             duration: 'Permanent', date: 'Yesterday', by: 'admin@cozytalk'),
-    BannedUser(id: 'b2', name: 'ToxicTed', reason: 'Harassment or Bullying',                   duration: '30 days',   date: '2 May',     by: 'admin@cozytalk'),
-    BannedUser(id: 'b3', name: 'LeakyLou', reason: 'Exposing private identifying information',  duration: 'Permanent', date: '28 Apr',    by: 'admin@cozytalk'),
+    BannedUser(id: 'b1', name: 'SpamBot7', reason: 'Spam & Scams',                            duration: 'Permanent', date: 'Yesterday', by: 'admin@cozytalk'),
+    BannedUser(id: 'b2', name: 'ToxicTed', reason: 'Harassment or Bullying',                  duration: '30 days',   date: '2 May',     by: 'admin@cozytalk'),
+    BannedUser(id: 'b3', name: 'LeakyLou', reason: 'Exposing private identifying information', duration: 'Permanent', date: '28 Apr',    by: 'admin@cozytalk'),
   ];
 
   AdminUser? _banUser;
@@ -160,8 +160,9 @@ class _AdminConsoleScreenState extends State<AdminConsoleScreen> {
                   borderRadius: BorderRadius.circular(22),
                   boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .08), blurRadius: 4, offset: const Offset(0, 2))],
                 ),
-                child: Center(
-                  child: Text('CT', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: AdminC.brownDarker)),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(22),
+                  child: Image.asset('assets/images/Logo.png', fit: BoxFit.cover),
                 ),
               ),
               const SizedBox(width: 10),

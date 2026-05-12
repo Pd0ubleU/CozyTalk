@@ -4,12 +4,10 @@ import 'admin_shared.dart';
 // ─── User Card ───
 class AdminUserCard extends StatefulWidget {
   final AdminUser user;
-  final int seed;
   final void Function(String action, AdminUser user) onAction;
   const AdminUserCard({
     super.key,
     required this.user,
-    required this.seed,
     required this.onAction,
   });
 
@@ -34,7 +32,7 @@ class _AdminUserCardState extends State<AdminUserCard> {
         children: [
           Row(
             children: [
-              AdminMascotAvatar(seed: widget.seed, size: 48, online: u.online),
+              AdminMascotAvatar(size: 48, online: u.online),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -165,11 +163,10 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
             ],
           ),
         ),
-        ...list.asMap().entries.map((e) => Padding(
+        ...list.map((u) => Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: AdminUserCard(
-            user: e.value,
-            seed: e.key + 1,
+            user: u,
             onAction: widget.onAction,
           ),
         )),

@@ -20,11 +20,21 @@ class AdminBannedCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 48, height: 48,
-                decoration: BoxDecoration(color: AdminC.redSoft, borderRadius: BorderRadius.circular(14)),
-                child: const Icon(Icons.block_rounded, color: Color(0xFF9F2A18), size: 26),
-              ),
+              Stack(children: [
+                AdminMascotAvatar(size: 48),
+                Positioned(
+                  right: -2, bottom: -2,
+                  child: Container(
+                    width: 18, height: 18,
+                    decoration: BoxDecoration(
+                      color: AdminC.red,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: const Icon(Icons.block_rounded, color: Colors.white, size: 10),
+                  ),
+                ),
+              ]),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
