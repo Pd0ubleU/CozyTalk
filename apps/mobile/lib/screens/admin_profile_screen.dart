@@ -6,8 +6,6 @@ class _C {
   static const brown      = Color(0xFF6E5B57);
   static const brownDarker= Color(0xFF3F3230);
   static const cream      = Color(0xFFFBF4E5);
-  static const creamDeep  = Color(0xFFF6EAD0);
-  static const green      = Color(0xFFD6E8B4);
   static const greenInk   = Color(0xFF3F4E1F);
   static const red        = Color(0xFFD85542);
   static const redSoft    = Color(0xFFF1DDD7);
@@ -29,11 +27,8 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   // Mock admin data
   final _adminName     = 'Modkun';
   final _adminEmail    = 'admin@cozytalk.app';
-  final _adminRole     = 'Senior Moderator';
   final _adminResolved = 142;
   final _adminBans     = 38;
-  final _adminDuty     = '4h 12m';
-  final _adminBanCount = 3;
 
   @override
   Widget build(BuildContext context) {
@@ -45,26 +40,26 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             children: [
               _buildHeader(context),
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+                child: Column(
                   children: [
-                    _buildProfileCard(),
-                    const SizedBox(height: 12),
-                    _buildEmailCard(),
-                    const SizedBox(height: 12),
-                    _buildStatsRow(),
-                    const SizedBox(height: 12),
-                    _buildRowCard(
-                      icon: Icons.block_rounded,
-                      iconColor: _C.brownDarker,
-                      label: 'Banned users',
-                      trailing: Text('$_adminBanCount', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _C.inkSoft)),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+                        child: Column(
+                          children: [
+                            _buildProfileCard(),
+                            const SizedBox(height: 12),
+                            _buildEmailCard(),
+                            const SizedBox(height: 12),
+                            _buildStatsRow(),
+                          ],
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    _buildDiscordRow(),
-                    const SizedBox(height: 24),
-                    _buildLogoutButton(),
-                    const SizedBox(height: 8),
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(context).padding.bottom + 20),
+                      child: _buildLogoutButton(),
+                    ),
                   ],
                 ),
               ),
@@ -107,62 +102,21 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .06), blurRadius: 12, offset: const Offset(0,4))],
       ),
-      padding: const EdgeInsets.all(18),
-      child: Stack(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
         children: [
-          Row(
+          const Icon(Icons.person, color: _C.brownDarker, size: 28),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 92, height: 92,
-                decoration: BoxDecoration(
-                  color: _C.creamDeep,
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .05), blurRadius: 4, offset: const Offset(0,2))],
-                ),
-                child: const Icon(Icons.person, color: _C.brownDarker, size: 52),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Username', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _C.inkSoft)),
-                    const SizedBox(height: 2),
-                    Text(_adminName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _C.ink)),
-                    const SizedBox(height: 8),
-                    const Text('Role', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _C.inkSoft)),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: _C.green, borderRadius: BorderRadius.circular(999)),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        const Icon(Icons.shield_rounded, size: 13, color: _C.greenInk),
-                        const SizedBox(width: 4),
-                        Text(_adminRole, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: _C.greenInk)),
-                      ]),
-                    ),
-                  ],
-                ),
-              ),
+              const Text('Username', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _C.inkSoft)),
+              const SizedBox(height: 2),
+              Text(_adminName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: _C.ink)),
             ],
-          ),
-          // Edit button
-          Positioned(
-            top: 0, right: 0,
-            child: Container(
-              width: 32, height: 32,
-              decoration: BoxDecoration(color: _C.creamDeep, borderRadius: BorderRadius.circular(9)),
-              child: Center(
-                child: SvgPicture.asset(
-                  'assets/images/Edit.svg',
-                  width: 16, height: 16,
-                  colorFilter: const ColorFilter.mode(_C.brownDarker, BlendMode.srcIn),
-                ),
-              ),
-            ),
           ),
         ],
       ),
@@ -202,68 +156,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
         Expanded(child: _StatBox(label: 'Resolved',   value: '$_adminResolved', valueColor: _C.greenInk)),
         const SizedBox(width: 8),
         Expanded(child: _StatBox(label: 'Bans issued', value: '$_adminBans',   valueColor: const Color(0xFF9F2A18))),
-        const SizedBox(width: 8),
-        Expanded(child: _StatBox(label: 'On duty',    value: _adminDuty,        valueColor: _C.brownDarker)),
       ],
-    );
-  }
-
-  // ─── Generic row card ───
-  Widget _buildRowCard({
-    required IconData icon,
-    required Color iconColor,
-    required String label,
-    Widget? trailing,
-    VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .06), blurRadius: 12, offset: const Offset(0,4))],
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Icon(icon, color: iconColor, size: 20),
-            const SizedBox(width: 12),
-            Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: _C.ink))),
-            if (trailing != null) trailing,
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ─── Discord row ───
-  Widget _buildDiscordRow() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .06), blurRadius: 12, offset: const Offset(0,4))],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
-        children: [
-          Container(
-            width: 28, height: 28,
-            decoration: BoxDecoration(color: const Color(0xFF5865F2), borderRadius: BorderRadius.circular(8)),
-            child: Center(
-              child: SvgPicture.asset(
-                'assets/images/Discord.svg',
-                width: 16, height: 16,
-                colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(child: Text('Contact us', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: _C.ink))),
-          const Text('@CozyTalk', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _C.inkSoft)),
-        ],
-      ),
     );
   }
 
@@ -283,7 +176,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             SvgPicture.asset(
               'assets/images/LogOut.svg',
               width: 20, height: 20,
-              colorFilter: const ColorFilter.mode(Color(0xFF9F2A18), BlendMode.srcIn),
+              colorFilter: const ColorFilter.mode(Color.fromARGB(255, 0, 0, 0), BlendMode.srcIn),
             ),
             const SizedBox(width: 14),
             const Text('Log out', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: _C.ink)),

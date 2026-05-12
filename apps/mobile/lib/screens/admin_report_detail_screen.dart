@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'admin_console_screen.dart';
+import 'admin_shared.dart';
 
 // Design tokens (same palette)
 class _C {
   static const brown      = Color(0xFF6E5B57);
   static const brownDarker= Color(0xFF3F3230);
   static const cream      = Color(0xFFFBF4E5);
-  static const creamDeep  = Color(0xFFF6EAD0);
   static const green      = Color(0xFFD6E8B4);
   static const greenInk   = Color(0xFF3F4E1F);
   static const red        = Color(0xFFD85542);
@@ -157,11 +156,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
                     const SizedBox(height: 2),
                     Text(r.reported, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: _C.ink)),
                     const SizedBox(height: 6),
-                    Row(children: [
-                      _SeverityChip(r.severity),
-                      const SizedBox(width: 6),
-                      Text('seen in ${r.room}', style: const TextStyle(fontSize: 11, color: _C.inkSoft)),
-                    ]),
+                    Text('seen in ${r.room} · ${r.roomId}', style: const TextStyle(fontSize: 11, color: _C.inkSoft)),
                   ],
                 ),
               ),
@@ -483,24 +478,6 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
   ];
 }
 
-// ─── Severity chip ───
-class _SeverityChip extends StatelessWidget {
-  final String severity;
-  const _SeverityChip(this.severity);
-  @override
-  Widget build(BuildContext context) {
-    final map = {
-      'high': (bg: const Color(0xFFFBDDD6), fg: const Color(0xFF9F2A18), label: 'HIGH'),
-      'med':  (bg: const Color(0xFFFAE7C8), fg: const Color(0xFF8A5A14), label: 'MED'),
-      'low':  (bg: const Color(0xFFE4EAD3), fg: const Color(0xFF4F5E27), label: 'LOW'),
-    }[severity]!;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(color: map.bg, borderRadius: BorderRadius.circular(999)),
-      child: Text(map.label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: map.fg, letterSpacing: .6)),
-    );
-  }
-}
 
 // ─── Mini stat ───
 class _MiniStat extends StatelessWidget {
