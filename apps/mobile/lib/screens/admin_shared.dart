@@ -17,6 +17,62 @@ class AdminC {
   static const border      = Color(0xFFEDE3CE);
 }
 
+// ─── Ban sub-models ───
+class AdminBanReportRef {
+  final String id;
+  final String by;
+  final String time;
+  const AdminBanReportRef({required this.id, required this.by, required this.time});
+}
+
+class AdminBanRecord {
+  final String reason;
+  final String duration;
+  final String date;
+  final String by;
+  final String note;
+  final String? expires;
+  const AdminBanRecord({
+    required this.reason,
+    required this.duration,
+    required this.date,
+    required this.by,
+    this.note = '',
+    this.expires,
+  });
+}
+
+class AdminBanDetailSubject {
+  final String name;
+  final String uid;
+  final bool online;
+  final String interest;
+  final int reports;
+  final String joined;
+  final AdminBanRecord? current;
+  final List<AdminBanReportRef> reportRefs;
+  final List<AdminBanRecord> previous;
+  const AdminBanDetailSubject({
+    required this.name,
+    required this.uid,
+    this.online = false,
+    this.interest = '',
+    this.reports = 0,
+    this.joined = '',
+    this.current,
+    this.reportRefs = const [],
+    this.previous = const [],
+  });
+}
+
+// ─── Report outcome ───
+class AdminReportOutcome {
+  final String kind; // 'banned' | 'dismissed'
+  final String label;
+  final String by;
+  const AdminReportOutcome({required this.kind, required this.label, required this.by});
+}
+
 // ─── Data models ───
 class AdminReport {
   final String id;
@@ -30,6 +86,9 @@ class AdminReport {
   final String severity;
   final String room;
   final String roomId;
+  final String reportedUserId;
+  final String reportedInterest;
+  AdminReportOutcome? outcome;
 
   AdminReport({
     required this.id,
@@ -43,45 +102,86 @@ class AdminReport {
     required this.severity,
     required this.room,
     required this.roomId,
+    required this.reportedUserId,
+    required this.reportedInterest,
   });
 }
 
 class AdminUser {
   final String id;
+  final String userId;
   final String name;
+  final String interest;
   bool online;
+  bool banned;
   String room;
+  String roomId;
   String session;
   final int reports;
   final String joined;
+  final List<AdminBanRecord> banHistory;
 
   AdminUser({
     required this.id,
+    required this.userId,
     required this.name,
+    required this.interest,
     required this.online,
+    this.banned = false,
     required this.room,
+    this.roomId = '—',
     required this.session,
     required this.reports,
     required this.joined,
-  });
+    List<AdminBanRecord>? banHistory,
+  }) : banHistory = banHistory ?? [];
 }
 
 class BannedUser {
   final String id;
   final String name;
+  final String uid;
   final String reason;
   final String duration;
   final String date;
+  final String expires;
   final String by;
+  final String note;
+  final List<AdminBanReportRef> reportRefs;
+  final List<AdminBanRecord> previous;
+
+  final String interest;
+  final int reports;
+  final String joined;
 
   BannedUser({
     required this.id,
     required this.name,
+    this.uid = '—',
     required this.reason,
     required this.duration,
     required this.date,
+    this.expires = '—',
     required this.by,
+    this.note = '',
+    this.reportRefs = const [],
+    this.previous = const [],
+    this.interest = '',
+    this.reports = 0,
+    this.joined = '',
   });
+
+  AdminBanDetailSubject toDetailSubject() => AdminBanDetailSubject(
+    name: name,
+    uid: uid,
+    online: false,
+    interest: interest,
+    reports: reports,
+    joined: joined,
+    current: AdminBanRecord(reason: reason, duration: duration, date: date, by: by, note: note, expires: expires),
+    reportRefs: reportRefs,
+    previous: previous,
+  );
 }
 
 const kBanReasons = [
@@ -130,6 +230,172 @@ class AdminMascotAvatar extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+// ─── Admin confirm dialogs ───
+void showAdminConfirmDismiss({
+  required BuildContext context,
+  required String reportedName,
+  required VoidCallback onConfirm,
+}) {
+  showDialog(
+    context: context,
+    barrierColor: Colors.black.withValues(alpha: 0.35),
+    builder: (_) => _AdminConfirmDialog(
+      title: 'Dismiss report?',
+      body: TextSpan(
+        style: const TextStyle(fontSize: 14, color: Colors.black87, height: 1.5),
+        children: [
+          const TextSpan(text: 'Are you sure you want to dismiss the\nreport against '),
+          TextSpan(text: reportedName, style: const TextStyle(fontWeight: FontWeight.bold)),
+          const TextSpan(text: '?'),
+        ],
+      ),
+      confirmLabel: 'Dismiss',
+      confirmBg: AdminC.neutral,
+      confirmFg: AdminC.ink,
+      confirmBorder: AdminC.border,
+      onConfirm: onConfirm,
+    ),
+  );
+}
+
+void showAdminConfirmBan({
+  required BuildContext context,
+  required String username,
+  required VoidCallback onConfirm,
+}) {
+  showDialog(
+    context: context,
+    barrierColor: Colors.black.withValues(alpha: 0.35),
+    builder: (_) => _AdminConfirmDialog(
+      title: 'Ban "$username"?',
+      body: TextSpan(
+        style: const TextStyle(fontSize: 14, color: Colors.black87, height: 1.5),
+        children: [
+          const TextSpan(text: 'Select a reason and duration\nfor banning '),
+          TextSpan(text: username, style: const TextStyle(fontWeight: FontWeight.bold)),
+          const TextSpan(text: '.'),
+        ],
+      ),
+      confirmLabel: 'Continue',
+      confirmBg: AdminC.red,
+      confirmFg: Colors.white,
+      confirmBorder: const Color(0xFFA33615),
+      onConfirm: onConfirm,
+    ),
+  );
+}
+
+void showAdminConfirmUnban({
+  required BuildContext context,
+  required String username,
+  required VoidCallback onConfirm,
+}) {
+  showDialog(
+    context: context,
+    barrierColor: Colors.black.withValues(alpha: 0.35),
+    builder: (_) => _AdminConfirmDialog(
+      title: 'Unban "$username"?',
+      body: TextSpan(
+        style: const TextStyle(fontSize: 14, color: Colors.black87, height: 1.5),
+        children: [
+          const TextSpan(text: 'Are you sure you want to unban '),
+          TextSpan(text: username, style: const TextStyle(fontWeight: FontWeight.bold)),
+          const TextSpan(text: '?\nThey will regain access to CozyTalk.'),
+        ],
+      ),
+      confirmLabel: 'Unban',
+      confirmBg: AdminC.green,
+      confirmFg: AdminC.greenInk,
+      confirmBorder: const Color(0xFFC7D2B5),
+      onConfirm: onConfirm,
+    ),
+  );
+}
+
+class _AdminConfirmDialog extends StatelessWidget {
+  final String title;
+  final InlineSpan body;
+  final String confirmLabel;
+  final Color confirmBg, confirmFg, confirmBorder;
+  final VoidCallback onConfirm;
+  const _AdminConfirmDialog({
+    required this.title,
+    required this.body,
+    required this.confirmLabel,
+    required this.confirmBg,
+    required this.confirmFg,
+    required this.confirmBorder,
+    required this.onConfirm,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+      ),
+      backgroundColor: Colors.white,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 48),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(title, textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.black)),
+            const SizedBox(height: 12),
+            RichText(textAlign: TextAlign.center, text: body),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _AdminConfirmBtn(
+                  label: 'Cancel',
+                  bg: Colors.grey.shade200,
+                  fg: Colors.black87,
+                  border: const Color(0xFFB7B4B4),
+                  onTap: () => Navigator.pop(context),
+                ),
+                const SizedBox(width: 12),
+                _AdminConfirmBtn(
+                  label: confirmLabel,
+                  bg: confirmBg,
+                  fg: confirmFg,
+                  border: confirmBorder,
+                  onTap: () { Navigator.pop(context); onConfirm(); },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AdminConfirmBtn extends StatelessWidget {
+  final String label;
+  final Color bg, fg, border;
+  final VoidCallback onTap;
+  const _AdminConfirmBtn({required this.label, required this.bg, required this.fg, required this.border, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: border, width: 1.5),
+        ),
+        child: Text(label, style: TextStyle(color: fg, fontWeight: FontWeight.w700, fontSize: 14)),
+      ),
     );
   }
 }

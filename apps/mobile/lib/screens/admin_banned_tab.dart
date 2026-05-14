@@ -4,81 +4,79 @@ import 'admin_shared.dart';
 // ─── Banned Card ───
 class AdminBannedCard extends StatelessWidget {
   final BannedUser banned;
-  final VoidCallback onUnban;
-  const AdminBannedCard({super.key, required this.banned, required this.onUnban});
+  final VoidCallback onTap;
+  const AdminBannedCard({
+    super.key,
+    required this.banned,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .06), blurRadius: 12, offset: const Offset(0, 4))],
-      ),
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Stack(children: [
-                AdminMascotAvatar(size: 48),
-                Positioned(
-                  right: -2, bottom: -2,
-                  child: Container(
-                    width: 18, height: 18,
-                    decoration: BoxDecoration(
-                      color: AdminC.red,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .06), blurRadius: 12, offset: const Offset(0, 4))],
+        ),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Stack(children: [
+                  AdminMascotAvatar(size: 48),
+                  Positioned(
+                    right: -2, bottom: -2,
+                    child: Container(
+                      width: 18, height: 18,
+                      decoration: BoxDecoration(
+                        color: AdminC.red,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: const Icon(Icons.block_rounded, color: Colors.white, size: 10),
                     ),
-                    child: const Icon(Icons.block_rounded, color: Colors.white, size: 10),
+                  ),
+                ]),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(banned.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AdminC.ink)),
+                      const SizedBox(height: 2),
+                      Text(banned.reason, style: const TextStyle(fontSize: 11.5, color: AdminC.inkSoft)),
+                    ],
                   ),
                 ),
-              ]),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(banned.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AdminC.ink)),
-                    const SizedBox(height: 2),
-                    Text(banned.reason, style: const TextStyle(fontSize: 11.5, color: AdminC.inkSoft)),
-                  ],
-                ),
-              ),
-              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                  decoration: BoxDecoration(color: AdminC.brownDarker, borderRadius: BorderRadius.circular(999)),
-                  child: Text(banned.duration, style: const TextStyle(color: Color(0xFFFFF7E8), fontSize: 10.5, fontWeight: FontWeight.w800)),
-                ),
-                const SizedBox(height: 4),
-                Text(banned.date, style: const TextStyle(fontSize: 10.5, color: AdminC.inkSoft)),
-              ]),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Text.rich(TextSpan(
-                  children: [
-                    const TextSpan(text: 'by ', style: TextStyle(fontSize: 11, color: AdminC.inkSoft)),
-                    TextSpan(text: banned.by, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AdminC.ink)),
-                  ],
-                )),
-              ),
-              GestureDetector(
-                onTap: onUnban,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(color: AdminC.green, borderRadius: BorderRadius.circular(999)),
-                  child: Text('Unban', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AdminC.greenInk)),
-                ),
-              ),
-            ],
-          ),
-        ],
+                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                    decoration: BoxDecoration(color: AdminC.brownDarker, borderRadius: BorderRadius.circular(999)),
+                    child: Text(banned.duration, style: const TextStyle(color: Color(0xFFFFF7E8), fontSize: 10.5, fontWeight: FontWeight.w800)),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(banned.date, style: const TextStyle(fontSize: 10.5, color: AdminC.inkSoft)),
+                ]),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(height: 1, color: AdminC.border.withValues(alpha: .5)),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text.rich(TextSpan(
+                children: [
+                  const TextSpan(text: 'by ', style: TextStyle(fontSize: 11, color: AdminC.inkSoft)),
+                  TextSpan(text: banned.by, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AdminC.ink)),
+                ],
+              )),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -88,17 +86,18 @@ class AdminBannedCard extends StatelessWidget {
 class AdminBannedTab extends StatelessWidget {
   final List<BannedUser> banned;
   final String query;
-  final void Function(BannedUser) onUnban;
+  final void Function(BannedUser) onOpen;
   const AdminBannedTab({
     super.key,
     required this.banned,
     required this.query,
-    required this.onUnban,
+    required this.onOpen,
   });
 
   @override
   Widget build(BuildContext context) {
-    final list = banned.where((b) => b.name.toLowerCase().contains(query.toLowerCase())).toList();
+    final q = query.toLowerCase();
+    final list = banned.where((b) => b.name.toLowerCase().contains(q) || b.uid.toLowerCase().contains(q)).toList();
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
@@ -113,7 +112,7 @@ class AdminBannedTab extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 10),
           child: AdminBannedCard(
             banned: b,
-            onUnban: () => onUnban(b),
+            onTap: () => onOpen(b),
           ),
         )),
         if (list.isEmpty)

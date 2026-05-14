@@ -28,9 +28,17 @@ class AdminReportCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: Text(report.reported, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AdminC.ink)),
+                        child: Wrap(
+                          spacing: 6,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(report.reported, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AdminC.ink)),
+                            if (report.outcome != null) _OutcomeBadge(outcome: report.outcome!),
+                          ],
+                        ),
                       ),
                       Text(report.time, style: const TextStyle(fontSize: 11, color: AdminC.inkSoft)),
                     ],
@@ -61,6 +69,13 @@ class AdminReportCard extends StatelessWidget {
                       Text('${report.evidence} attachment${report.evidence > 1 ? 's' : ''}', style: const TextStyle(fontSize: 11, color: AdminC.inkSoft)),
                     ],
                   ]),
+                  if (report.outcome != null) ...[
+                    const SizedBox(height: 4),
+                    Text.rich(TextSpan(children: [
+                      const TextSpan(text: 'by ', style: TextStyle(fontSize: 11, color: AdminC.inkSoft)),
+                      TextSpan(text: report.outcome!.by, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AdminC.ink)),
+                    ])),
+                  ],
                 ],
               ),
             ),
@@ -95,7 +110,7 @@ class _AdminReportsTabState extends State<AdminReportsTab> {
     final filtered = widget.reports.where((r) {
       final matchFilter = _reportFilter == 'all' ? true : r.status == _reportFilter;
       final q = widget.query.toLowerCase();
-      final matchQuery = r.reported.toLowerCase().contains(q) || r.reporter.toLowerCase().contains(q);
+      final matchQuery = r.reported.toLowerCase().contains(q) || r.reporter.toLowerCase().contains(q) || r.reportedUserId.toLowerCase().contains(q);
       return matchFilter && matchQuery;
     }).toList();
 
@@ -136,6 +151,44 @@ class _AdminReportsTabState extends State<AdminReportsTab> {
             child: Center(child: Text('No reports here. 🌿', style: TextStyle(color: AdminC.inkSoft, fontSize: 13))),
           ),
       ],
+    );
+  }
+}
+
+// ─── Outcome badge ───
+class _OutcomeBadge extends StatelessWidget {
+  final AdminReportOutcome outcome;
+  const _OutcomeBadge({required this.outcome});
+
+  @override
+  Widget build(BuildContext context) {
+    final banned = outcome.kind == 'banned';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: banned ? AdminC.red : AdminC.neutral,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            banned ? Icons.block_rounded : Icons.check_rounded,
+            size: 11,
+            color: banned ? Colors.white : AdminC.ink,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            outcome.label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: banned ? Colors.white : AdminC.ink,
+              letterSpacing: .4,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

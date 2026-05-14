@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'admin_shared.dart';
+import 'admin_users_tab.dart';
+import 'admin_ban_detail_screen.dart';
 import '../shared/layered_avatar.dart';
 
 // Design tokens (same palette)
@@ -20,13 +22,15 @@ class _C {
 class AdminReportDetailScreen extends StatefulWidget {
   final AdminReport report;
   final VoidCallback onDismiss;
-  final VoidCallback onBanRequested;
+  final void Function(String reason, String duration, String note) onBanConfirmed;
+  final AdminUser? reporterUser;
 
   const AdminReportDetailScreen({
     super.key,
     required this.report,
     required this.onDismiss,
-    required this.onBanRequested,
+    required this.onBanConfirmed,
+    this.reporterUser,
   });
 
   @override
@@ -35,18 +39,25 @@ class AdminReportDetailScreen extends StatefulWidget {
 
 class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
   bool _showBanModal = false;
-  String? _banReason;
-  String _banOther = '';
+  final Set<String> _banReasons = {};
   String _banDuration = 'Permanent';
+  String _banNote = '';
   int _banStep = 1;
-  final _otherCtrl = TextEditingController();
+  final _noteCtrl = TextEditingController();
 
   @override
-  void dispose() { _otherCtrl.dispose(); super.dispose(); }
+  void dispose() { _noteCtrl.dispose(); super.dispose(); }
 
-  String get _finalReason => (_banReason == 'Others' && _banOther.isNotEmpty)
-      ? 'Others: $_banOther' : (_banReason ?? '');
-  bool get _canNext => _banReason != null && !(_banReason == 'Others' && _banOther.isEmpty);
+  String get _finalReason => _banReasons.join(', ');
+  bool get _canNext => _banReasons.isNotEmpty;
+
+  void _resetBanModal() {
+    _banReasons.clear();
+    _banDuration = 'Permanent';
+    _banNote = '';
+    _noteCtrl.clear();
+    _banStep = 1;
+  }
 
   void _dismiss() {
     widget.onDismiss();
@@ -64,17 +75,21 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
               _buildHeader(context),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 100),
+                  padding: EdgeInsets.fromLTRB(16, 14, 16, widget.report.status == 'resolved' ? 24 : 100),
                   children: [
+                    if (widget.report.outcome != null) ...[
+                      _buildResolutionBanner(widget.report.outcome!),
+                      const SizedBox(height: 12),
+                    ],
                     _buildReportedUserCard(),
                     const SizedBox(height: 12),
                     _buildSection('Reasons reported', _buildReasons()),
                     const SizedBox(height: 12),
-                    _buildSection(
+                    Builder(builder: (ctx) => _buildSection(
                       'Additional context',
                       _buildContext(),
-                      sub: 'from ${widget.report.reporter} · ${widget.report.time}',
-                    ),
+                      subWidget: _buildReporterLabel(ctx),
+                    )),
                     if (widget.report.evidence > 0) ...[
                       const SizedBox(height: 12),
                       _buildSection('Attached images (${widget.report.evidence})', _buildEvidence()),
@@ -84,11 +99,11 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
               ),
             ],
           ),
-          // Sticky footer
-          Positioned(
-            left: 0, right: 0, bottom: 0,
-            child: _buildFooter(context),
-          ),
+          if (widget.report.status != 'resolved')
+            Positioned(
+              left: 0, right: 0, bottom: 0,
+              child: _buildFooter(context),
+            ),
           if (_showBanModal)
             _buildBanOverlay(),
         ],
@@ -129,6 +144,67 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
     );
   }
 
+  // ─── Resolution banner ───
+  Widget _buildResolutionBanner(AdminReportOutcome outcome) {
+    final banned = outcome.kind == 'banned';
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: banned ? _C.redSoft : const Color(0xFFF6EAD0),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .05), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38, height: 38,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              banned ? Icons.block_rounded : Icons.check_circle_outline_rounded,
+              size: 20,
+              color: banned ? const Color(0xFF9F2A18) : _C.brownDarker,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'RESOLUTION',
+                  style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, letterSpacing: 1.4, color: banned ? const Color(0xFF9F2A18) : _C.brownDarker),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  outcome.label,
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: banned ? const Color(0xFF9F2A18) : _C.ink),
+                ),
+                const SizedBox(height: 2),
+                Text.rich(TextSpan(children: [
+                  const TextSpan(text: 'by ', style: TextStyle(fontSize: 11, color: _C.inkSoft)),
+                  TextSpan(text: outcome.by, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _C.ink)),
+                ])),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(999),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .04), blurRadius: 2, offset: const Offset(0,1))],
+            ),
+            child: Text(
+              'Closed',
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.4, color: banned ? const Color(0xFF9F2A18) : _C.brownDarker),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ─── Reported user card ───
   Widget _buildReportedUserCard() {
     final r = widget.report;
@@ -142,24 +218,40 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
       child: Column(
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 64, height: 64,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade200, width: 1.5),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .06), blurRadius: 6, offset: const Offset(0, 2))],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Center(child: LayeredAvatar(boxSize: 64)),
+              // Avatar + UID badge
+              Column(
+                children: [
+                  Container(
+                    width: 72, height: 72,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: Colors.grey.shade200, width: 1.5),
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .06), blurRadius: 6, offset: const Offset(0, 2))],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Center(child: LayeredAvatar(boxSize: 56)),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text('UID: ${r.reportedUserId}', style: const TextStyle(fontSize: 10, color: _C.ink, fontWeight: FontWeight.w600)),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
+              // Info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,8 +259,19 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
                     const Text('REPORTED USER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _C.inkSoft, letterSpacing: 1)),
                     const SizedBox(height: 2),
                     Text(r.reported, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: _C.ink)),
-                    const SizedBox(height: 6),
-                    Text('seen in ${r.room} · ${r.roomId}', style: const TextStyle(fontSize: 11, color: _C.inkSoft)),
+                    const SizedBox(height: 4),
+                    RichText(text: TextSpan(
+                      style: const TextStyle(fontSize: 11, color: _C.inkSoft),
+                      children: [
+                        const TextSpan(text: 'seen in '),
+                        TextSpan(text: r.room, style: const TextStyle(fontWeight: FontWeight.w700, color: _C.ink)),
+                        TextSpan(text: ' · ${r.roomId}'),
+                      ],
+                    )),
+                    const SizedBox(height: 10),
+                    const Text('Interest', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _C.ink)),
+                    const SizedBox(height: 2),
+                    Text(r.reportedInterest, style: const TextStyle(fontSize: 12, color: _C.inkSoft)),
                   ],
                 ),
               ),
@@ -184,7 +287,11 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
                 Container(width: 1, height: 30, color: _C.border),
                 Expanded(child: _MiniStat(label: 'Account age', value: '1m')),
                 Container(width: 1, height: 30, color: _C.border),
-                Expanded(child: _MiniStat(label: 'Status', value: 'Active', valueColor: const Color(0xFF3B7A2A))),
+                Expanded(child: _MiniStat(
+                  label: 'Status',
+                  value: widget.report.outcome?.kind == 'banned' ? 'Banned' : 'Active',
+                  valueColor: widget.report.outcome?.kind == 'banned' ? _C.red : const Color(0xFF3B7A2A),
+                )),
               ],
             ),
           ),
@@ -253,7 +360,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
   }
 
   // ─── Section wrapper ───
-  Widget _buildSection(String title, Widget child, {String? sub}) {
+  Widget _buildSection(String title, Widget child, {String? sub, Widget? subWidget}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -263,12 +370,46 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _C.ink)),
-              if (sub != null) Text(sub, style: const TextStyle(fontSize: 11, color: _C.inkSoft)),
+              if (subWidget != null) subWidget
+              else if (sub != null) Text(sub, style: const TextStyle(fontSize: 11, color: _C.inkSoft)),
             ],
           ),
         ),
         child,
       ],
+    );
+  }
+
+  Widget _buildReporterLabel(BuildContext context) {
+    final reporter = widget.reporterUser;
+    final label = Text.rich(
+      TextSpan(
+        style: const TextStyle(fontSize: 11, color: _C.inkSoft),
+        children: [
+          const TextSpan(text: 'from '),
+          TextSpan(
+            text: widget.report.reporter,
+            style: const TextStyle(fontWeight: FontWeight.w800, color: _C.ink),
+          ),
+          TextSpan(text: ' · ${widget.report.time}'),
+        ],
+      ),
+    );
+    if (reporter == null) return label;
+    return GestureDetector(
+      onTap: () => showDialog(
+        context: context,
+        barrierColor: Colors.black.withValues(alpha: 0.35),
+        builder: (_) => AdminUserProfileDialog(
+          user: reporter,
+          onViewHistory: reporter.banHistory.isNotEmpty
+              ? (subject) => Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => AdminBanDetailScreen(subject: subject),
+                ))
+              : null,
+        ),
+      ),
+      child: label,
     );
   }
 
@@ -287,7 +428,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
         children: [
           Expanded(
             child: GestureDetector(
-              onTap: _dismiss,
+              onTap: () => showAdminConfirmDismiss(context: context, reportedName: widget.report.reported, onConfirm: _dismiss),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(color: _C.neutral, borderRadius: BorderRadius.circular(999),
@@ -299,7 +440,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: GestureDetector(
-              onTap: () => setState(() { _showBanModal = true; _banStep = 1; _banReason = null; }),
+              onTap: () => setState(() { _resetBanModal(); _showBanModal = true; }),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
@@ -359,10 +500,14 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
                 const SizedBox(width: 6),
                 Expanded(child: Container(height: 4, decoration: BoxDecoration(
                   color: _banStep >= 2 ? _C.red : _C.border, borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(width: 6),
+                Expanded(child: Container(height: 4, decoration: BoxDecoration(
+                  color: _banStep >= 3 ? _C.red : _C.border, borderRadius: BorderRadius.circular(2)))),
               ]),
               const SizedBox(height: 14),
               if (_banStep == 1) ..._buildBanStep1(),
               if (_banStep == 2) ..._buildBanStep2(),
+              if (_banStep == 3) ..._buildBanStep3(),
             ],
           ),
         ),
@@ -372,14 +517,16 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
   }
 
   List<Widget> _buildBanStep1() => [
-    const Text('Why are you banning this user? Choose one.',
+    const Text('Why are you banning this user? Choose one or more.',
       style: TextStyle(fontSize: 13, color: _C.inkSoft)),
     const SizedBox(height: 12),
     ...const ['Harassment or Bullying', 'Spam & Scams', 'Exposing private identifying information', 'Others']
         .map((r) {
-      final active = _banReason == r;
+      final active = _banReasons.contains(r);
       return GestureDetector(
-        onTap: () => setState(() => _banReason = r),
+        onTap: () => setState(() {
+          if (active) { _banReasons.remove(r); } else { _banReasons.add(r); }
+        }),
         child: Container(
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.all(12),
@@ -404,24 +551,6 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
         ),
       );
     }),
-    if (_banReason == 'Others')
-      Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: TextField(
-          controller: _otherCtrl,
-          onChanged: (v) => setState(() => _banOther = v),
-          maxLines: 2,
-          decoration: InputDecoration(
-            hintText: 'Type the reason…',
-            hintStyle: const TextStyle(color: _C.inkSoft, fontSize: 13),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _C.border)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _C.border, width: 1.5)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _C.brownDarker, width: 1.5)),
-            contentPadding: const EdgeInsets.all(10),
-          ),
-          style: const TextStyle(fontSize: 13, color: _C.ink),
-        ),
-      ),
     Row(children: [
       Expanded(child: _ModalBtn(label: 'Cancel', bg: _C.neutral, fg: _C.ink, onTap: () => setState(() => _showBanModal = false))),
       const SizedBox(width: 10),
@@ -477,11 +606,59 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
     Row(children: [
       Expanded(child: _ModalBtn(label: 'Back', bg: _C.neutral, fg: _C.ink, onTap: () => setState(() => _banStep = 1))),
       const SizedBox(width: 10),
+      Expanded(child: _ModalBtn(label: 'Next', bg: _C.green, fg: _C.greenInk, onTap: () => setState(() => _banStep = 3))),
+    ]),
+  ];
+
+  List<Widget> _buildBanStep3() => [
+    Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: const Color(0xFFF6EAD0), borderRadius: BorderRadius.circular(12)),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Icon(Icons.warning_amber_rounded, color: Color(0xFF8A5A14), size: 20),
+        const SizedBox(width: 10),
+        Expanded(child: Text.rich(TextSpan(
+          style: const TextStyle(fontSize: 12.5, color: _C.ink, height: 1.5),
+          children: [
+            TextSpan(text: widget.report.reported, style: const TextStyle(fontWeight: FontWeight.w800)),
+            const TextSpan(text: ' will be banned for '),
+            TextSpan(text: _banDuration.toLowerCase(), style: const TextStyle(fontWeight: FontWeight.w800)),
+            const TextSpan(text: ' for '),
+            TextSpan(text: _finalReason, style: const TextStyle(fontWeight: FontWeight.w800)),
+            const TextSpan(text: '. They will be removed immediately.'),
+          ],
+        ))),
+      ]),
+    ),
+    const SizedBox(height: 12),
+    const Text('Add a note about this ban (optional).',
+      style: TextStyle(fontSize: 13, color: _C.inkSoft)),
+    const SizedBox(height: 12),
+    TextField(
+      controller: _noteCtrl,
+      onChanged: (v) => setState(() => _banNote = v),
+      maxLines: 4,
+      decoration: InputDecoration(
+        hintText: 'e.g. Sent crypto giveaway links to 30+ users within minutes.',
+        hintStyle: const TextStyle(color: _C.inkSoft, fontSize: 12.5),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _C.border)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _C.border, width: 1.5)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _C.brownDarker, width: 1.5)),
+        contentPadding: const EdgeInsets.all(12),
+        filled: true,
+        fillColor: const Color(0xFFFAF5EB),
+      ),
+      style: const TextStyle(fontSize: 13, color: _C.ink, height: 1.5),
+    ),
+    const SizedBox(height: 14),
+    Row(children: [
+      Expanded(child: _ModalBtn(label: 'Back', bg: _C.neutral, fg: _C.ink, onTap: () => setState(() => _banStep = 2))),
+      const SizedBox(width: 10),
       Expanded(child: _ModalBtn(
         label: 'Confirm Ban', bg: _C.red, fg: Colors.white,
         icon: Icons.block_rounded,
         onTap: () {
-          widget.onBanRequested();
+          widget.onBanConfirmed(_finalReason, _banDuration, _banNote);
           setState(() => _showBanModal = false);
           Navigator.pop(context);
         },

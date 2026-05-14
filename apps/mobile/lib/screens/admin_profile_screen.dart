@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 // Design tokens
 class _C {
@@ -16,7 +15,9 @@ class _C {
 }
 
 class AdminProfileScreen extends StatefulWidget {
-  const AdminProfileScreen({super.key});
+  final int resolvedCount;
+  final int bansCount;
+  const AdminProfileScreen({super.key, this.resolvedCount = 0, this.bansCount = 0});
   @override
   State<AdminProfileScreen> createState() => _AdminProfileScreenState();
 }
@@ -25,10 +26,8 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   bool _showLogoutConfirm = false;
 
   // Mock admin data
-  final _adminName     = 'Modkun';
-  final _adminEmail    = 'admin@cozytalk.app';
-  final _adminResolved = 142;
-  final _adminBans     = 38;
+  final _adminName  = 'Modkun';
+  final _adminEmail = 'admin@cozytalk.app';
 
   @override
   Widget build(BuildContext context) {
@@ -153,9 +152,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   Widget _buildStatsRow() {
     return Row(
       children: [
-        Expanded(child: _StatBox(label: 'Resolved',   value: '$_adminResolved', valueColor: _C.greenInk)),
+        Expanded(child: _StatBox(label: 'Resolved',   value: '${widget.resolvedCount}', valueColor: _C.greenInk)),
         const SizedBox(width: 8),
-        Expanded(child: _StatBox(label: 'Bans issued', value: '$_adminBans',   valueColor: const Color(0xFF9F2A18))),
+        Expanded(child: _StatBox(label: 'Bans issued', value: '${widget.bansCount}', valueColor: const Color(0xFF9F2A18))),
       ],
     );
   }
@@ -173,11 +172,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         child: Row(
           children: [
-            SvgPicture.asset(
-              'assets/images/icons/LogOut.svg',
-              width: 20, height: 20,
-              colorFilter: const ColorFilter.mode(Color.fromARGB(255, 0, 0, 0), BlendMode.srcIn),
-            ),
+            const Icon(Icons.logout_rounded, size: 20, color: _C.ink),
             const SizedBox(width: 14),
             const Text('Log out', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: _C.ink)),
           ],
@@ -207,11 +202,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                   width: 52, height: 52,
                   decoration: BoxDecoration(color: _C.redSoft, borderRadius: BorderRadius.circular(14)),
                   child: Center(
-                    child: SvgPicture.asset(
-                      'assets/images/icons/LogOut.svg',
-                      width: 26, height: 26,
-                      colorFilter: const ColorFilter.mode(Color(0xFF9F2A18), BlendMode.srcIn),
-                    ),
+                    child: const Icon(Icons.logout_rounded, size: 26, color: Color(0xFF9F2A18)),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -248,11 +239,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              SvgPicture.asset(
-                                'assets/images/icons/LogOut.svg',
-                                width: 16, height: 16,
-                                colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-                              ),
+                              const Icon(Icons.logout_rounded, size: 16, color: Colors.white),
                               const SizedBox(width: 6),
                               const Text('Log out', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Colors.white)),
                             ],
