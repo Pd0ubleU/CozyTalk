@@ -6,11 +6,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/datasources/admin_datasource.dart';
 import '../../data/repositories/admin_repository_impl.dart';
+import '../../domain/entities/admin_blocked_entry.dart';
 import '../../domain/entities/admin_dashboard_stats.dart';
 import '../../domain/entities/admin_report.dart';
 import '../../domain/entities/admin_user.dart';
 import '../../domain/repositories/admin_repository.dart';
 import '../../domain/usecases/ban_user.dart';
+import '../../domain/usecases/get_blocked_users.dart';
 import '../../domain/usecases/get_chat_log_url.dart';
 import '../../domain/usecases/get_dashboard_stats.dart';
 import '../../domain/usecases/resolve_report.dart';
@@ -61,6 +63,10 @@ final _banUserProvider = Provider<BanUser>(
 
 final _unbanUserProvider = Provider<UnbanUser>(
   (ref) => UnbanUser(ref.watch(adminRepositoryProvider)),
+);
+
+final _getBlockedUsersProvider = Provider<GetBlockedUsers>(
+  (ref) => GetBlockedUsers(ref.watch(adminRepositoryProvider)),
 );
 
 // ── Public providers ───────────────────────────────────────────────────────
@@ -209,6 +215,8 @@ class AdminUsersState {
   final bool isSubmitting;
   final String? error;
   final String? actionError;
+  final List<AdminBlockedEntry>? blockedUsersForUid;
+  final String? blockedUsersUid;
 
   const AdminUsersState({
     this.status = AdminUsersStatus.idle,
@@ -216,6 +224,8 @@ class AdminUsersState {
     this.isSubmitting = false,
     this.error,
     this.actionError,
+    this.blockedUsersForUid,
+    this.blockedUsersUid,
   });
 
   AdminUsersState copyWith({
@@ -224,6 +234,8 @@ class AdminUsersState {
     bool? isSubmitting,
     Object? error = _sentinel,
     Object? actionError = _sentinel,
+    Object? blockedUsersForUid = _sentinel,
+    Object? blockedUsersUid = _sentinel,
   }) => AdminUsersState(
     status: status ?? this.status,
     users: users ?? this.users,
@@ -232,6 +244,12 @@ class AdminUsersState {
     actionError: actionError == _sentinel
         ? this.actionError
         : actionError as String?,
+    blockedUsersForUid: blockedUsersForUid == _sentinel
+        ? this.blockedUsersForUid
+        : blockedUsersForUid as List<AdminBlockedEntry>?,
+    blockedUsersUid: blockedUsersUid == _sentinel
+        ? this.blockedUsersUid
+        : blockedUsersUid as String?,
   );
 }
 
@@ -293,6 +311,21 @@ class AdminUsersNotifier extends Notifier<AdminUsersState> {
     try {
       await ref.read(_unbanUserProvider).call(uid);
       state = state.copyWith(isSubmitting: false);
+    } catch (e) {
+      state = state.copyWith(isSubmitting: false, actionError: e.toString());
+    }
+  }
+
+  Future<void> loadBlockedUsers(String uid) async {
+    if (state.isSubmitting) return;
+    state = state.copyWith(isSubmitting: true, actionError: null);
+    try {
+      final entries = await ref.read(_getBlockedUsersProvider).call(uid);
+      state = state.copyWith(
+        isSubmitting: false,
+        blockedUsersUid: uid,
+        blockedUsersForUid: entries,
+      );
     } catch (e) {
       state = state.copyWith(isSubmitting: false, actionError: e.toString());
     }

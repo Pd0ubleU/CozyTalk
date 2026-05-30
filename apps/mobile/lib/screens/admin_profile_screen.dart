@@ -34,8 +34,10 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
-    final adminName = authState.user?.displayName ?? 'Admin';
     final adminEmail = authState.user?.email ?? '';
+    final adminName = adminEmail.contains('@')
+        ? adminEmail.split('@').first
+        : (authState.user?.displayName ?? 'Admin');
     return Scaffold(
       backgroundColor: _C.cream,
       body: Stack(

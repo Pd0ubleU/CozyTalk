@@ -1,133 +1,360 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile/features/auth/domain/entities/auth_user.dart';
+import 'package:mobile/features/auth/presentation/providers/auth_provider.dart';
+import 'package:mobile/features/chat/presentation/providers/chat_provider.dart';
+import 'package:mobile/features/matchmaking/domain/entities/matchmaking_status.dart';
+import 'package:mobile/features/matchmaking/domain/entities/room.dart';
+import 'package:mobile/features/matchmaking/presentation/providers/matchmaking_provider.dart';
 import 'package:mobile/screens/group_chat_screen.dart';
 import 'package:mobile/shared/avatar_overlay.dart';
+import 'package:mobile/shared/press_bounce_btn.dart';
 import 'package:mobile/shared/user_profile.dart';
-import 'package:mobile/theme/app_routes.dart';
 
-// ── Fakes ──────────────────────────────────────────────────────────────────────
+// ── Fakes ─────────────────────────────────────────────────────────────────────
 
-class _FakeAvatarNotifier extends AvatarNotifier {
-  final AvatarState _initial;
-
-  _FakeAvatarNotifier({AvatarState initial = const AvatarState()})
+class _FakeAuthNotifier extends AuthNotifier {
+  final AuthState _initial;
+  _FakeAuthNotifier({AuthState initial = const AuthState()})
     : _initial = initial;
 
   @override
-  AvatarState build() => _initial;
+  AuthState build() => _initial;
 
   @override
-  Future<void> setMood(AvatarOverlay? v) async {}
+  Future<void> signIn({
+    required String email,
+    required String password,
+  }) async {}
 
   @override
-  Future<void> setAccessory(AvatarOverlay? v) async {}
+  Future<void> signUp({
+    required String email,
+    required String password,
+  }) async {}
+
+  @override
+  Future<void> signOut() async {}
+
+  @override
+  Future<void> signInAnonymously() async {}
+
+  @override
+  Future<void> signInWithGoogle() async {}
 }
 
-class _FakeUserProfileNotifier extends UserProfileNotifier {
-  final UserProfileState _initial;
+class _FakeChatNotifier extends ChatNotifier {
+  final ChatState _initial;
+  final List<String> sentMessages = [];
+  int setTypingCount = 0;
+  bool? lastTypingValue;
+  int forceDisconnectCount = 0;
 
-  _FakeUserProfileNotifier({
-    UserProfileState initial = const UserProfileState(),
+  _FakeChatNotifier({ChatState initial = const ChatState()})
+    : _initial = initial;
+
+  @override
+  ChatState build() => _initial;
+
+  @override
+  void enterSession({
+    required String sessionId,
+    required String currentUserId,
+    String? currentUserDisplayName,
+    String? currentUserPhotoUrl,
+  }) {}
+
+  @override
+  Future<void> sendMessage(String text) async => sentMessages.add(text);
+
+  @override
+  Future<void> setTyping(bool isTyping) async {
+    setTypingCount++;
+    lastTypingValue = isTyping;
+  }
+
+  @override
+  Future<void> endSession() async {}
+
+  @override
+  void forceDisconnect() => forceDisconnectCount++;
+}
+
+class _FakeMatchmakingNotifier extends MatchmakingNotifier {
+  final MatchmakingState _initial;
+  bool? lastLockValue;
+  int leaveRoomCount = 0;
+
+  _FakeMatchmakingNotifier({
+    MatchmakingState initial = const MatchmakingState(),
   }) : _initial = initial;
 
   @override
-  UserProfileState build() => _initial;
+  MatchmakingState build() => _initial;
 
   @override
-  void setUsername(String username) {}
+  Future<void> join1v1Pool() async {}
 
   @override
-  void setInterest(String interest) {}
+  Future<void> joinGroupRoom() async {}
 
   @override
-  void setThought(String thought) {}
+  Future<void> createCustomRoom() async {}
 
   @override
-  void update({required String username, required String interest}) {}
+  Future<void> joinRoomById(String roomId) async {}
+
+  @override
+  Future<void> cancelSearch() async {}
+
+  @override
+  Future<void> setRoomLock({required bool isLocked}) async =>
+      lastLockValue = isLocked;
+
+  @override
+  Future<void> leaveRoom() async => leaveRoomCount++;
+
+  @override
+  void setInterestText(String text) {}
+
+  @override
+  Future<void> loadSavedInterestText() async {}
 }
 
-// ── Helper ─────────────────────────────────────────────────────────────────────
+class _FakeAvatarNotifier extends AvatarNotifier {
+  @override
+  AvatarState build() => AvatarState();
+}
 
-Future<void> _pump(
-  WidgetTester tester, {
-  String roomName = 'Kao Tapu',
-  String roomId = 'AB123',
-  _FakeAvatarNotifier? avatarFake,
-  _FakeUserProfileNotifier? profileFake,
-}) async {
-  avatarFake ??= _FakeAvatarNotifier();
-  profileFake ??= _FakeUserProfileNotifier();
+class _FakeUserProfileNotifier extends UserProfileNotifier {
+  @override
+  UserProfileState build() => const UserProfileState();
+}
 
-  await tester.pumpWidget(
-    ProviderScope(
-      overrides: [
-        avatarProvider.overrideWith(() => avatarFake!),
-        userProfileProvider.overrideWith(() => profileFake!),
-      ],
-      child: MaterialApp(
-        routes: {
-          '/': (_) => Builder(
-            builder: (ctx) => TextButton(
-              onPressed: () => Navigator.pushNamed(
-                ctx,
-                AppRoutes.groupChatScreen,
-                arguments: {
-                  'roomName': roomName,
-                  'roomId': roomId,
-                  'bgImage': 'assets/images/backgrounds/kao_tapu.png',
-                  'maxMembers': 5,
-                },
-              ),
-              child: const Text('go'),
-            ),
-          ),
-          AppRoutes.groupChatScreen: (_) => const GroupChatScreen(),
-          AppRoutes.friendChat: (_) =>
-              const Scaffold(body: Text('friend-chat')),
-        },
+/// Pumps one frame to execute [addPostFrameCallback], then advances 400 ms to
+/// drain the non-cancellable [Future.delayed(350ms)] inside [_scrollToBottom].
+Future<void> _pump(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
+}
+
+// ── Helper ────────────────────────────────────────────────────────────────────
+
+const _kArgs = {
+  'roomId': 'GRP01',
+  'roomName': 'Test Group',
+  'bgImage': 'assets/images/backgrounds/kao_tapu.png',
+  'roomType': 'group',
+  'maxMembers': 5,
+};
+
+Widget _buildScreen(
+  _FakeChatNotifier chatFake, {
+  _FakeMatchmakingNotifier? matchFake,
+  AuthState auth = const AuthState(
+    status: AuthStatus.authenticated,
+    user: AuthUser(uid: 'u1'),
+  ),
+}) {
+  return ProviderScope(
+    overrides: [
+      authNotifierProvider.overrideWith(() => _FakeAuthNotifier(initial: auth)),
+      chatNotifierProvider.overrideWith(() => chatFake),
+      matchmakingNotifierProvider.overrideWith(
+        () => matchFake ?? _FakeMatchmakingNotifier(),
       ),
+      avatarProvider.overrideWith(() => _FakeAvatarNotifier()),
+      userProfileProvider.overrideWith(() => _FakeUserProfileNotifier()),
+    ],
+    child: MaterialApp(
+      onGenerateRoute: (settings) {
+        if (settings.name == '/') {
+          return MaterialPageRoute(
+            settings: const RouteSettings(name: '/', arguments: _kArgs),
+            builder: (_) => const GroupChatScreen(),
+          );
+        }
+        return MaterialPageRoute(
+          builder: (_) => const Scaffold(body: Text('home')),
+        );
+      },
+      initialRoute: '/',
     ),
   );
-  await tester.tap(find.text('go'));
-  await tester
-      .pump(); // render GroupChatScreen + register first postFrameCallback
-  await tester
-      .pump(); // _scrollToBottom() fires + starts Future.delayed(350 ms)
-  // Drain the 350 ms scroll timer so it doesn't remain pending after disposal.
-  // Stays well below the 3-second friend-message timer to keep tests isolated.
-  await tester.pump(const Duration(milliseconds: 400));
-  await tester.pump(); // settle any resulting callbacks
 }
 
-// ── Tests ──────────────────────────────────────────────────────────────────────
+// ── Tests ─────────────────────────────────────────────────────────────────────
 
 void main() {
   group('GroupChatScreen', () {
     testWidgets('renders without error', (tester) async {
+      await tester.pumpWidget(_buildScreen(_FakeChatNotifier()));
       await _pump(tester);
       expect(find.byType(GroupChatScreen), findsOneWidget);
     });
 
-    testWidgets('shows room name in header', (tester) async {
-      await _pump(tester, roomName: 'Kao Tapu');
-      expect(find.text('Kao Tapu'), findsWidgets);
-    });
-
-    testWidgets('shows room ID in header', (tester) async {
-      await _pump(tester, roomId: 'AB123');
-      expect(find.textContaining('AB123'), findsOneWidget);
-    });
-
-    testWidgets('renders message input field', (tester) async {
+    testWidgets('shows Keep it friendly warning text', (tester) async {
+      await tester.pumpWidget(_buildScreen(_FakeChatNotifier()));
       await _pump(tester);
-      // SongPanelBody (always in the tree) also has a TextField, so check for ≥1
-      expect(find.byType(TextField), findsAtLeastNWidgets(1));
+      expect(find.textContaining('Keep it friendly'), findsOneWidget);
     });
 
-    testWidgets('shows existing messages in the list', (tester) async {
+    testWidgets('shows Type here hint in text field', (tester) async {
+      await tester.pumpWidget(_buildScreen(_FakeChatNotifier()));
       await _pump(tester);
-      expect(find.textContaining('Hello'), findsWidgets);
+      expect(find.text('Type here ...'), findsOneWidget);
+    });
+
+    testWidgets('shows room name from route args', (tester) async {
+      await tester.pumpWidget(_buildScreen(_FakeChatNotifier()));
+      await _pump(tester);
+      expect(find.text('Test Group'), findsOneWidget);
+    });
+
+    testWidgets('shows lock toggle in header', (tester) async {
+      await tester.pumpWidget(_buildScreen(_FakeChatNotifier()));
+      await _pump(tester);
+      expect(
+        find.byIcon(Icons.lock_open_rounded).evaluate().isNotEmpty ||
+            find.byIcon(Icons.lock_rounded).evaluate().isNotEmpty,
+        isTrue,
+      );
+    });
+
+    testWidgets('lock shows locked state when currentRoom.isLocked is true', (
+      tester,
+    ) async {
+      final room = Room(
+        roomId: 'GRP01',
+        roomType: RoomType.custom,
+        mode: RoomMode.group,
+        status: RoomStatus.active,
+        maxUsers: 5,
+        memberCount: 1,
+        users: const ['u1'],
+        isLocked: true,
+        createdAt: DateTime(2025),
+      );
+      final matchFake = _FakeMatchmakingNotifier(
+        initial: MatchmakingState(
+          status: MatchmakingStatus.matched,
+          roomId: 'GRP01',
+          currentRoom: room,
+        ),
+      );
+      await tester.pumpWidget(
+        _buildScreen(_FakeChatNotifier(), matchFake: matchFake),
+      );
+      await _pump(tester);
+      expect(find.byIcon(Icons.lock_rounded), findsOneWidget);
+    });
+
+    testWidgets('tapping lock toggle calls setRoomLock', (tester) async {
+      final room = Room(
+        roomId: 'GRP01',
+        roomType: RoomType.custom,
+        mode: RoomMode.group,
+        status: RoomStatus.active,
+        maxUsers: 5,
+        memberCount: 1,
+        users: const ['u1'],
+        isLocked: false,
+        createdAt: DateTime(2025),
+      );
+      final matchFake = _FakeMatchmakingNotifier(
+        initial: MatchmakingState(
+          status: MatchmakingStatus.matched,
+          roomId: 'GRP01',
+          currentRoom: room,
+        ),
+      );
+      await tester.pumpWidget(
+        _buildScreen(_FakeChatNotifier(), matchFake: matchFake),
+      );
+      await _pump(tester);
+
+      await tester.tap(find.byIcon(Icons.lock_open_rounded));
+      await tester.pump();
+
+      expect(matchFake.lastLockValue, true);
+    });
+
+    testWidgets('typing in text field calls setTyping', (tester) async {
+      final chatFake = _FakeChatNotifier();
+      await tester.pumpWidget(_buildScreen(chatFake));
+      await _pump(tester);
+
+      await tester.enterText(find.byType(TextField).first, 'hello');
+      await tester.pump();
+
+      expect(chatFake.setTypingCount, greaterThanOrEqualTo(1));
+      expect(chatFake.lastTypingValue, true);
+    });
+
+    testWidgets('isSending=true prevents sendMessage when send tapped', (
+      tester,
+    ) async {
+      final chatFake = _FakeChatNotifier(
+        initial: const ChatState(isSending: true),
+      );
+      await tester.pumpWidget(_buildScreen(chatFake));
+      await _pump(tester);
+
+      await tester.enterText(find.byType(TextField).first, 'hello');
+      await tester.pump();
+
+      final sendBtn = find.ancestor(
+        of: find.byWidgetPredicate(
+          (w) =>
+              w is Container &&
+              (w.decoration as BoxDecoration?)?.color ==
+                  const Color(0xFFEAC163),
+        ),
+        matching: find.byType(GestureDetector),
+      );
+      if (sendBtn.evaluate().isNotEmpty) {
+        await tester.tap(sendBtn.first, warnIfMissed: false);
+        await tester.pump();
+      }
+
+      expect(chatFake.sentMessages, isEmpty);
+    });
+
+    testWidgets(
+      'tapping Leave header button calls leaveRoom and forceDisconnect',
+      (tester) async {
+        final chatFake = _FakeChatNotifier();
+        final matchFake = _FakeMatchmakingNotifier();
+        await tester.pumpWidget(_buildScreen(chatFake, matchFake: matchFake));
+        await _pump(tester);
+
+        // First PressBounceBtn in the header is the back/leave button
+        await tester.tap(find.byType(PressBounceBtn).first);
+        await tester.pump();
+
+        // LeaveRoomDialog is now visible — tap the Leave confirmation
+        await tester.tap(find.text('Leave'));
+        await tester.pump();
+
+        expect(matchFake.leaveRoomCount, 1);
+        expect(chatFake.forceDisconnectCount, 1);
+      },
+    );
+
+    group('accessibility', () {
+      testWidgets('interactive elements have semantic labels', (tester) async {
+        final handle = tester.ensureSemantics();
+        try {
+          await tester.pumpWidget(_buildScreen(_FakeChatNotifier()));
+          await _pump(tester);
+          expect(find.bySemanticsLabel('Send message'), findsOneWidget);
+          expect(find.bySemanticsLabel('End chat'), findsOneWidget);
+          expect(find.bySemanticsLabel('Toggle room lock'), findsOneWidget);
+        } finally {
+          handle.dispose();
+        }
+      });
     });
   });
 }

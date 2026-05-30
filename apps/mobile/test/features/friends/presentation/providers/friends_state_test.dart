@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/features/friends/domain/entities/app_user.dart';
 import 'package:mobile/features/friends/domain/entities/friend.dart';
 import 'package:mobile/features/friends/domain/entities/friend_request.dart';
+import 'package:mobile/features/friends/domain/entities/friend_room_status.dart';
 import 'package:mobile/features/friends/presentation/providers/friends_provider.dart';
 
 void main() {
@@ -111,6 +112,89 @@ void main() {
       );
       final cleared = state.copyWith(allUsers: []);
       expect(cleared.allUsers, isEmpty);
+    });
+
+    test('initial state has empty enrichment maps', () {
+      const state = FriendsState();
+      expect(state.presenceMap, isEmpty);
+      expect(state.lastMessageMap, isEmpty);
+      expect(state.roomMap, isEmpty);
+    });
+
+    test('copyWith sets presenceMap', () {
+      const state = FriendsState();
+      final updated = state.copyWith(
+        presenceMap: {'uid1': true, 'uid2': false},
+      );
+      expect(updated.presenceMap['uid1'], isTrue);
+      expect(updated.presenceMap['uid2'], isFalse);
+    });
+
+    test('copyWith preserves presenceMap when not provided', () {
+      const state = FriendsState(presenceMap: {'uid1': true});
+      final updated = state.copyWith(isLoading: true);
+      expect(updated.presenceMap['uid1'], isTrue);
+    });
+
+    test('copyWith sets lastMessageMap', () {
+      const state = FriendsState();
+      final updated = state.copyWith(
+        lastMessageMap: {'room1': 'hello', 'room2': ''},
+      );
+      expect(updated.lastMessageMap['room1'], 'hello');
+      expect(updated.lastMessageMap['room2'], '');
+    });
+
+    test('copyWith preserves lastMessageMap when not provided', () {
+      const state = FriendsState(lastMessageMap: {'room1': 'hi'});
+      final updated = state.copyWith(isLoading: false);
+      expect(updated.lastMessageMap['room1'], 'hi');
+    });
+
+    test('copyWith sets roomMap with FriendRoomStatus', () {
+      const status = FriendRoomStatus(
+        roomId: 'r1',
+        memberCount: 2,
+        maxUsers: 5,
+        isLocked: false,
+        mode: 'group',
+      );
+      const state = FriendsState();
+      final updated = state.copyWith(roomMap: {'uid1': status});
+      expect(updated.roomMap['uid1']?.roomId, 'r1');
+      expect(updated.roomMap['uid1']?.mode, 'group');
+    });
+
+    test('copyWith sets roomMap with null value for a key', () {
+      const state = FriendsState();
+      final updated = state.copyWith(roomMap: {'uid1': null});
+      expect(updated.roomMap.containsKey('uid1'), isTrue);
+      expect(updated.roomMap['uid1'], isNull);
+    });
+
+    test('copyWith preserves roomMap when not provided', () {
+      const status = FriendRoomStatus(
+        roomId: 'r2',
+        memberCount: 1,
+        maxUsers: 2,
+        isLocked: false,
+        mode: '1v1',
+      );
+      const state = FriendsState(roomMap: {'uid1': status});
+      final updated = state.copyWith(isLoading: true);
+      expect(updated.roomMap['uid1']?.roomId, 'r2');
+    });
+
+    test('copyWith without arguments preserves enrichment maps', () {
+      const state = FriendsState(
+        presenceMap: {'uid1': true},
+        lastMessageMap: {'room1': 'hi'},
+        roomMap: {'uid1': null},
+      );
+      final copy = state.copyWith();
+      expect(copy.presenceMap, {'uid1': true});
+      expect(copy.lastMessageMap, {'room1': 'hi'});
+      expect(copy.roomMap.containsKey('uid1'), isTrue);
     });
   });
 }

@@ -2,6 +2,7 @@ import '../../domain/entities/app_user.dart';
 import '../../domain/entities/friend.dart';
 import '../../domain/entities/friend_message.dart';
 import '../../domain/entities/friend_request.dart';
+import '../../domain/entities/friend_room_status.dart';
 import '../../domain/repositories/friends_repository.dart';
 import '../datasources/friends_datasource.dart';
 import '../models/app_user_model.dart';
@@ -33,6 +34,18 @@ class FriendsRepositoryImpl implements FriendsRepository {
   Stream<List<FriendMessage>> watchMessages(String chatRoomId) => _datasource
       .watchMessages(chatRoomId)
       .map((models) => models.map((m) => m.toEntity()).toList());
+
+  @override
+  Stream<bool> watchFriendPresence(String friendUid) =>
+      _datasource.watchFriendPresence(friendUid);
+
+  @override
+  Stream<String> watchFriendLastMessage(String chatRoomId) =>
+      _datasource.watchFriendLastMessage(chatRoomId);
+
+  @override
+  Stream<FriendRoomStatus?> watchFriendRoom(String friendUid) =>
+      _datasource.watchFriendRoom(friendUid);
 
   @override
   Future<void> sendFriendRequest({

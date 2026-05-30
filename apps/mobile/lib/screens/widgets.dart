@@ -8,6 +8,7 @@ PreferredSizeWidget buildAppBar(BuildContext context, String title) {
   return AppBar(
     leading: IconButton(
       icon: const Icon(Icons.chevron_left, size: 30),
+      tooltip: 'Go back',
       onPressed: () => Navigator.pop(context),
     ),
     title: Text(title),
@@ -41,7 +42,7 @@ class PillButton extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: TextStyle(
+          style: Theme.of(context).textTheme.bodySmall!.copyWith(
             color: textColor,
             fontSize: 12,
             fontWeight: FontWeight.bold,
@@ -133,9 +134,9 @@ class FriendRoomCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (showLabel)
-                  const Text(
+                  Text(
                     'CURRENTLY IN',
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.labelSmall!.copyWith(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       color: AppColors.brownDeep,
@@ -145,7 +146,7 @@ class FriendRoomCard extends StatelessWidget {
                 if (showLabel) const SizedBox(height: 2),
                 Text(
                   room.name,
-                  style: const TextStyle(
+                  style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                     color: Colors.black87,
@@ -168,15 +169,18 @@ class FriendRoomCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       '${room.current}/${room.max}',
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
                         fontSize: 12,
                         color: AppColors.brownDeep,
                       ),
                     ),
                     if (!room.isOneOnOne && (room.isLocked || room.isFull)) ...[
-                      const Text(
+                      Text(
                         '  ·  ',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                          fontSize: 12,
+                          color: const Color(0xFF757575),
+                        ),
                       ),
                       _StatusPill(room: room),
                     ],
@@ -218,9 +222,9 @@ class _StatusPill extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 3),
-            const Text(
+            Text(
               'Locked',
-              style: TextStyle(
+              style: Theme.of(context).textTheme.labelSmall!.copyWith(
                 fontSize: 11,
                 color: AppColors.brownDeep,
                 fontWeight: FontWeight.w700,
@@ -236,9 +240,9 @@ class _StatusPill extends StatelessWidget {
         color: Colors.grey.shade200,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Text(
+      child: Text(
         'Full',
-        style: TextStyle(
+        style: Theme.of(context).textTheme.labelSmall!.copyWith(
           fontSize: 11,
           color: Colors.grey,
           fontWeight: FontWeight.w700,
@@ -265,7 +269,7 @@ class _ActionButton extends StatelessWidget {
         ),
         child: Text(
           'Join',
-          style: TextStyle(
+          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
             fontSize: 13,
             fontWeight: FontWeight.w900,
             color: Colors.grey.shade400,
@@ -283,12 +287,12 @@ class _ActionButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: const Color(0xFFC7D2B5), width: 1.5),
           ),
-          child: const Text(
+          child: Text(
             'Join',
-            style: TextStyle(
+            style: Theme.of(context).textTheme.bodyMedium!.copyWith(
               fontSize: 13,
               fontWeight: FontWeight.w900,
-              color: Color(0xFF4A553F),
+              color: const Color(0xFF4A553F),
             ),
           ),
         ),
@@ -304,7 +308,7 @@ class _ActionButton extends StatelessWidget {
       ),
       child: Text(
         'Join',
-        style: TextStyle(
+        style: Theme.of(context).textTheme.bodyMedium!.copyWith(
           fontSize: 13,
           fontWeight: FontWeight.w900,
           color: Colors.grey.shade400,
@@ -319,27 +323,34 @@ class AvatarActionButton extends StatelessWidget {
   final String svgPath;
   final bool enabled;
   final VoidCallback onTap;
+  final String semanticLabel;
 
   const AvatarActionButton({
     super.key,
     required this.svgPath,
     required this.enabled,
     required this.onTap,
+    required this.semanticLabel,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: Opacity(
-        opacity: enabled ? 1.0 : 0.35,
-        child: SvgPicture.asset(
-          svgPath,
-          width: 28,
-          height: 28,
-          colorFilter: const ColorFilter.mode(
-            AppColors.brownDeep,
-            BlendMode.srcIn,
+    return Semantics(
+      label: semanticLabel,
+      button: true,
+      enabled: enabled,
+      child: GestureDetector(
+        onTap: enabled ? onTap : null,
+        child: Opacity(
+          opacity: enabled ? 1.0 : 0.35,
+          child: SvgPicture.asset(
+            svgPath,
+            width: 28,
+            height: 28,
+            colorFilter: const ColorFilter.mode(
+              AppColors.brownDeep,
+              BlendMode.srcIn,
+            ),
           ),
         ),
       ),
@@ -354,11 +365,13 @@ class UserAvatarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      'assets/images/UserAvatar.png',
-      height: size,
-      errorBuilder: (_, _, _) =>
-          Icon(Icons.person, size: size, color: AppColors.brownDeep),
+    return ExcludeSemantics(
+      child: Image.asset(
+        'assets/images/UserAvatar.png',
+        height: size,
+        errorBuilder: (_, _, _) =>
+            Icon(Icons.person, size: size, color: AppColors.brownDeep),
+      ),
     );
   }
 }

@@ -21,8 +21,5 @@
     }
   },
   "files.eol": "\n",
-  "java.configuration.updateBuildConfiguration": "interactive",
-  "git.autofetch": false,
-  "git.detectSubmodules": false,
-  "git.detectSubmodulesLimit": 0
+  "java.configuration.updateBuildConfiguration": "interactive"
 }

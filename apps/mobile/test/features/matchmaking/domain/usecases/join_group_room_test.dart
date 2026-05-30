@@ -36,6 +36,29 @@ void main() {
       expect(repo.lastJoinGroupRoomInterest, isNull);
     });
 
+    test('forwards backgroundTheme to repository', () async {
+      await useCase.call(backgroundTheme: 'lumphini_park');
+
+      expect(repo.joinGroupRoomCalls, 1);
+      expect(repo.lastJoinGroupRoomBackgroundTheme, 'lumphini_park');
+    });
+
+    test('passes null backgroundTheme when not provided', () async {
+      await useCase.call();
+
+      expect(repo.lastJoinGroupRoomBackgroundTheme, isNull);
+    });
+
+    test('forwards both interestText and backgroundTheme together', () async {
+      await useCase.call(
+        interestText: 'cooking',
+        backgroundTheme: 'sea_of_cloud',
+      );
+
+      expect(repo.lastJoinGroupRoomInterest, 'cooking');
+      expect(repo.lastJoinGroupRoomBackgroundTheme, 'sea_of_cloud');
+    });
+
     test('propagates repository exception', () async {
       repo.error = Exception('network error');
 

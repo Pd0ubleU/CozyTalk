@@ -129,6 +129,27 @@ void main() {
         expect(cleared.interestText, '');
       });
 
+      test('sets backgroundTheme', () {
+        const s = MatchmakingState();
+        final updated = s.copyWith(backgroundTheme: 'kao_tapu');
+
+        expect(updated.backgroundTheme, 'kao_tapu');
+      });
+
+      test('clears backgroundTheme with explicit null (sentinel guard)', () {
+        final s = MatchmakingState(backgroundTheme: 'kao_tapu');
+        final cleared = s.copyWith(backgroundTheme: null);
+
+        expect(cleared.backgroundTheme, isNull);
+      });
+
+      test('preserves backgroundTheme when not specified', () {
+        final s = MatchmakingState(backgroundTheme: 'red_lotus_lake');
+        final updated = s.copyWith(status: MatchmakingStatus.searching);
+
+        expect(updated.backgroundTheme, 'red_lotus_lake');
+      });
+
       test('preserves all fields when called with no args', () {
         final room = _activeRoom();
         final s = MatchmakingState(
@@ -138,6 +159,7 @@ void main() {
           currentRoom: room,
           error: 'err',
           interestText: 'music',
+          backgroundTheme: 'sea_of_cloud',
         );
 
         final unchanged = s.copyWith();
@@ -148,7 +170,16 @@ void main() {
         expect(unchanged.currentRoom, room);
         expect(unchanged.error, 'err');
         expect(unchanged.interestText, 'music');
+        expect(unchanged.backgroundTheme, 'sea_of_cloud');
       });
+    });
+  });
+
+  group('MatchmakingState initial defaults', () {
+    test('backgroundTheme defaults to null', () {
+      const s = MatchmakingState();
+
+      expect(s.backgroundTheme, isNull);
     });
   });
 }

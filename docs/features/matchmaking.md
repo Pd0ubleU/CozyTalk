@@ -40,7 +40,7 @@ features/matchmaking/
 
 `MatchmakingStatus` enum: `idle | searching | waiting1v1 | matched | creating | error`
 
-`MatchmakingState` — `status`, `currentRoom` (Room?), `roomId` (String?), `isNewRoom` (bool), `interestText` (String), `error` (String?)
+`MatchmakingState` — `status`, `currentRoom` (Room?), `roomId` (String?), `isNewRoom` (bool), `interestText` (String), `backgroundTheme` (String?), `error` (String?)
 
 `Room` entity fields: `roomId` (String), `roomType` (RoomType: public|custom), `mode` (RoomMode: oneToOne|group), `status` (RoomStatus: active|padding|expired)
 
@@ -60,6 +60,7 @@ features/matchmaking/
 - Interest vectors: Vertex AI `text-multilingual-embedding-002`, 256 dims, cosine threshold 0.65
 - Stored in `waiting_pool/{uid}.interestVector` (256-element array); text cached in `SharedPreferences`
 - `match1v1Users` CF deployed to `asia-southeast1` (co-located with RTDB — intentional for RTDB write latency)
+- **Background theme:** optional room theme selector (`kao_tapu`, `red_lotus_lake`, `sea_of_cloud`, `lumphini_park`). Stored in `MatchmakingState.backgroundTheme`; forwarded to `join1v1Pool`, `joinGroupRoom`, and `createCustomRoom` CFs. Matching rule: themed users match same-theme or unthemed candidates (unthemed = flexible, adopts the room's theme). The only blocked pairing is two users with different non-null themes. Unthemed users match anyone. `setBackgroundTheme(String?)` on the notifier; preserved across room transitions by `_idleState()`. Server validates against the four allowed IDs — invalid values are silently dropped to `null`. `backgroundTheme` is always written on rooms (valid string or `null`). `leaveRoom` CF preserves the room's `backgroundTheme` when re-queuing the remaining 1v1 user after their partner disconnects.
 
 ## Production Screens
 

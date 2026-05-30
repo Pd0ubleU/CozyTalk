@@ -65,6 +65,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   labelText: 'Password',
                   border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
+                    tooltip: 'Toggle password visibility',
                     icon: Icon(
                       _obscurePassword
                           ? Icons.visibility_off
@@ -85,6 +86,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   labelText: 'Confirm Password',
                   border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
+                    tooltip: 'Toggle confirm password visibility',
                     icon: Icon(
                       _obscureConfirm ? Icons.visibility_off : Icons.visibility,
                     ),

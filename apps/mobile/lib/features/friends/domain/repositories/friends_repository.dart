@@ -2,12 +2,16 @@ import '../entities/app_user.dart';
 import '../entities/friend.dart';
 import '../entities/friend_message.dart';
 import '../entities/friend_request.dart';
+import '../entities/friend_room_status.dart';
 
 abstract class FriendsRepository {
   Stream<List<AppUser>> watchAllUsers();
   Stream<List<Friend>> watchFriends();
   Stream<List<FriendRequest>> watchIncomingRequests();
   Stream<List<FriendMessage>> watchMessages(String chatRoomId);
+  Stream<bool> watchFriendPresence(String friendUid);
+  Stream<String> watchFriendLastMessage(String chatRoomId);
+  Stream<FriendRoomStatus?> watchFriendRoom(String friendUid);
   Future<void> sendFriendRequest({
     required String toUid,
     required String toDisplayName,

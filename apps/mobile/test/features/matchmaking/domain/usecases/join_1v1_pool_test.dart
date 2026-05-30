@@ -32,6 +32,29 @@ void main() {
       expect(repo.lastJoin1v1PoolInterest, isNull);
     });
 
+    test('forwards backgroundTheme to repository', () async {
+      await useCase.call(backgroundTheme: 'kao_tapu');
+
+      expect(repo.join1v1PoolCalls, 1);
+      expect(repo.lastJoin1v1PoolBackgroundTheme, 'kao_tapu');
+    });
+
+    test('passes null backgroundTheme when not provided', () async {
+      await useCase.call();
+
+      expect(repo.lastJoin1v1PoolBackgroundTheme, isNull);
+    });
+
+    test('forwards both interestText and backgroundTheme together', () async {
+      await useCase.call(
+        interestText: 'football',
+        backgroundTheme: 'red_lotus_lake',
+      );
+
+      expect(repo.lastJoin1v1PoolInterest, 'football');
+      expect(repo.lastJoin1v1PoolBackgroundTheme, 'red_lotus_lake');
+    });
+
     test('propagates repository exception', () async {
       repo.error = Exception('already queued');
 

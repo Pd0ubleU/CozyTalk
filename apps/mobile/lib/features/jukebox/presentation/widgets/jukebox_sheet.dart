@@ -88,10 +88,13 @@ class _JukeboxSheetState extends ConsumerState<JukeboxSheet> {
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
                 const SizedBox(width: 8),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Jukebox',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 IconButton(
@@ -112,9 +115,12 @@ class _JukeboxSheetState extends ConsumerState<JukeboxSheet> {
               children: [
                 // ── Now Playing ──
                 if (roomState?.currentTrack != null) ...[
-                  const Text(
+                  Text(
                     'NOW PLAYING',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   ListTile(
@@ -201,9 +207,12 @@ class _JukeboxSheetState extends ConsumerState<JukeboxSheet> {
                 ],
 
                 // ── Up Next ──
-                const Text(
+                Text(
                   'UP NEXT',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 ...List.generate(3, (i) {
@@ -238,9 +247,12 @@ class _JukeboxSheetState extends ConsumerState<JukeboxSheet> {
                 const SizedBox(height: 16),
 
                 // ── Add Song ──
-                const Text(
+                Text(
                   'ADD SONG',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 TextField(

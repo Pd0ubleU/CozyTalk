@@ -22,6 +22,19 @@ void main() {
       expect(repo.createCustomRoomCalls, 1);
     });
 
+    test('forwards backgroundTheme to repository', () async {
+      await useCase.call(backgroundTheme: 'kao_tapu');
+
+      expect(repo.createCustomRoomCalls, 1);
+      expect(repo.lastCreateCustomRoomBackgroundTheme, 'kao_tapu');
+    });
+
+    test('passes null backgroundTheme when not provided', () async {
+      await useCase.call();
+
+      expect(repo.lastCreateCustomRoomBackgroundTheme, isNull);
+    });
+
     test('propagates repository exception', () async {
       repo.error = Exception('timeout');
 

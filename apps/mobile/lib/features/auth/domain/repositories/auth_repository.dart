@@ -7,4 +7,6 @@ abstract class AuthRepository {
   Future<AuthUser> signUp({required String email, required String password});
   Future<AuthUser> signIn({required String email, required String password});
   Future<void> signOut();
+  // Refreshes the current user's ID token. Throws if token is invalid/expired.
+  Future<void> validateToken();
 }

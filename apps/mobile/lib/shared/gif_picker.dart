@@ -1,30 +1,15 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import '../theme/app_colors.dart';
 
-// Mock GIF entries — replace with real Tenor/Giphy API data later
-const _mockGifs = [
-  _MockGif('Wave', Color(0xFFFFD1DC)),
-  _MockGif('LOL', Color(0xFFD1F0FF)),
-  _MockGif('Wow', Color(0xFFD4FFD1)),
-  _MockGif('Sad', Color(0xFFE8D1FF)),
-  _MockGif('Fire', Color(0xFFFFE5D1)),
-  _MockGif('Love', Color(0xFFFFD1D1)),
-  _MockGif('Win', Color(0xFFFFF9D1)),
-  _MockGif('Cute', Color(0xFFD1FFEC)),
-  _MockGif('Hype', Color(0xFFFFD1F5)),
-  _MockGif('Sleep', Color(0xFFD1E4FF)),
-  _MockGif('OMG', Color(0xFFFFECD1)),
-  _MockGif('Cool', Color(0xFFD1FFF9)),
-];
-
-class _MockGif {
-  final String label;
-  final Color color;
-  const _MockGif(this.label, this.color);
+class _GifItem {
+  final String url;
+  const _GifItem(this.url);
 }
 
 /// Show GIF picker bottom sheet.
-/// Returns the selected [gifLabel] string, or null if dismissed.
+/// Returns the selected GIF URL, or null if dismissed.
 Future<String?> showGifPicker(BuildContext context) {
   return showModalBottomSheet<String>(
     context: context,
@@ -43,7 +28,14 @@ class _GifPickerSheet extends StatefulWidget {
 
 class _GifPickerSheetState extends State<_GifPickerSheet> {
   final TextEditingController _searchCtrl = TextEditingController();
-  List<_MockGif> _filtered = _mockGifs;
+  List<_GifItem> _gifs = const [];
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchGifs();
+  }
 
   @override
   void dispose() {
@@ -51,14 +43,47 @@ class _GifPickerSheetState extends State<_GifPickerSheet> {
     super.dispose();
   }
 
-  void _onSearch(String query) {
-    final q = query.trim().toLowerCase();
-    setState(() {
-      _filtered = q.isEmpty
-          ? _mockGifs
-          : _mockGifs.where((g) => g.label.toLowerCase().contains(q)).toList();
-    });
+  Future<void> _fetchGifs([String query = '']) async {
+    const apiKey = String.fromEnvironment('GIPHY_API_KEY');
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+    try {
+      final uri = query.trim().isEmpty
+          ? Uri.https('api.giphy.com', '/v1/gifs/trending', {
+              'api_key': apiKey,
+              'limit': '25',
+              'rating': 'g',
+            })
+          : Uri.https('api.giphy.com', '/v1/gifs/search', {
+              'api_key': apiKey,
+              'q': query.trim(),
+              'limit': '25',
+              'rating': 'g',
+            });
+      final response = await http.get(uri);
+      if (!mounted) return;
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final data = json['data'] as List<dynamic>;
+      setState(() {
+        _gifs = data
+            .map((item) {
+              final images = item['images'] as Map<String, dynamic>;
+              final url =
+                  (images['fixed_height'] as Map<String, dynamic>?)?['url']
+                      as String? ??
+                  '';
+              return _GifItem(url);
+            })
+            .where((g) => g.url.isNotEmpty)
+            .toList();
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
+
+  void _onSearch(String query) => _fetchGifs(query);
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +98,6 @@ class _GifPickerSheetState extends State<_GifPickerSheet> {
         ),
         child: Column(
           children: [
-            // Handle
             const SizedBox(height: 10),
             Container(
               width: 36,
@@ -84,7 +108,6 @@ class _GifPickerSheetState extends State<_GifPickerSheet> {
               ),
             ),
             const SizedBox(height: 14),
-            // Header
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
@@ -142,9 +165,12 @@ class _GifPickerSheetState extends State<_GifPickerSheet> {
               ),
             ),
             const SizedBox(height: 14),
-            // Grid
             Expanded(
-              child: _filtered.isEmpty
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: Colors.white54),
+                    )
+                  : _gifs.isEmpty
                   ? const Center(
                       child: Text(
                         'No GIFs found',
@@ -161,49 +187,36 @@ class _GifPickerSheetState extends State<_GifPickerSheet> {
                             mainAxisSpacing: 8,
                             childAspectRatio: 1.2,
                           ),
-                      itemCount: _filtered.length,
+                      itemCount: _gifs.length,
                       itemBuilder: (_, i) {
-                        final gif = _filtered[i];
+                        final gif = _gifs[i];
                         return GestureDetector(
-                          onTap: () => Navigator.pop(context, gif.label),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: gif.color,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            alignment: Alignment.center,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  gif.label,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 15,
-                                    color: Color(0xFF4A3228),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black12,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Text(
-                                    'GIF',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF4A3228),
-                                      letterSpacing: 0.5,
+                          onTap: () => Navigator.pop(context, gif.url),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              gif.url,
+                              fit: BoxFit.cover,
+                              loadingBuilder: (_, child, progress) =>
+                                  progress == null
+                                  ? child
+                                  : const Center(
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white54,
+                                        strokeWidth: 2,
+                                      ),
                                     ),
+                              errorBuilder: (_, _, _) => Container(
+                                color: Colors.white12,
+                                alignment: Alignment.center,
+                                child: const Text(
+                                  'GIF',
+                                  style: TextStyle(
+                                    color: Colors.white54,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ],
+                              ),
                             ),
                           ),
                         );

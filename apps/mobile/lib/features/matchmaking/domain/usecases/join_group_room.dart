@@ -4,6 +4,11 @@ class JoinGroupRoom {
   final MatchmakingRepository _repository;
   const JoinGroupRoom(this._repository);
 
-  Future<({String roomId, bool isNewRoom})> call({String? interestText}) =>
-      _repository.joinGroupRoom(interestText: interestText);
+  Future<({String roomId, bool isNewRoom})> call({
+    String? interestText,
+    String? backgroundTheme,
+  }) => _repository.joinGroupRoom(
+    interestText: interestText,
+    backgroundTheme: backgroundTheme,
+  );
 }

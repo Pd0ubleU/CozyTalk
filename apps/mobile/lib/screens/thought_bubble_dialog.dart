@@ -143,15 +143,19 @@ class _ThoughtBubbleDialogState extends State<_ThoughtBubbleDialog> {
                         Positioned(
                           top: 5,
                           right: 5,
-                          child: GestureDetector(
-                            onTap: () => _ctrl.clear(),
-                            child: SvgPicture.asset(
-                              'assets/images/icons/Close.svg',
-                              width: 24,
-                              height: 24,
-                              colorFilter: const ColorFilter.mode(
-                                Colors.grey,
-                                BlendMode.srcIn,
+                          child: Semantics(
+                            label: 'Clear text',
+                            button: true,
+                            child: GestureDetector(
+                              onTap: () => _ctrl.clear(),
+                              child: SvgPicture.asset(
+                                'assets/images/icons/Close.svg',
+                                width: 24,
+                                height: 24,
+                                colorFilter: const ColorFilter.mode(
+                                  Colors.grey,
+                                  BlendMode.srcIn,
+                                ),
                               ),
                             ),
                           ),
@@ -187,18 +191,22 @@ class _ThoughtBubbleDialogState extends State<_ThoughtBubbleDialog> {
             Positioned(
               top: -10,
               right: -10,
-              child: GestureDetector(
-                onTap: _cancel,
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: SvgPicture.asset(
-                    'assets/images/icons/Close.svg',
-                    width: 30,
-                    height: 30,
-                    colorFilter: const ColorFilter.mode(
-                      Colors.black,
-                      BlendMode.srcIn,
+              child: Semantics(
+                label: 'Cancel',
+                button: true,
+                child: GestureDetector(
+                  onTap: _cancel,
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: SvgPicture.asset(
+                      'assets/images/icons/Close.svg',
+                      width: 30,
+                      height: 30,
+                      colorFilter: const ColorFilter.mode(
+                        Colors.black,
+                        BlendMode.srcIn,
+                      ),
                     ),
                   ),
                 ),

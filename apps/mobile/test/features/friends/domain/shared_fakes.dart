@@ -2,6 +2,7 @@ import 'package:mobile/features/friends/domain/entities/app_user.dart';
 import 'package:mobile/features/friends/domain/entities/friend.dart';
 import 'package:mobile/features/friends/domain/entities/friend_message.dart';
 import 'package:mobile/features/friends/domain/entities/friend_request.dart';
+import 'package:mobile/features/friends/domain/entities/friend_room_status.dart';
 import 'package:mobile/features/friends/domain/repositories/friends_repository.dart';
 
 class FakeFriendsRepository implements FriendsRepository {
@@ -33,6 +34,15 @@ class FakeFriendsRepository implements FriendsRepository {
   String? lastText;
   String? lastSenderDisplayName;
 
+  bool presenceResult = false;
+  String? lastWatchPresenceFriendUid;
+
+  String lastMessageResult = '';
+  String? lastWatchLastMessageChatRoomId;
+
+  FriendRoomStatus? roomResult;
+  String? lastWatchRoomFriendUid;
+
   @override
   Stream<List<AppUser>> watchAllUsers() =>
       error != null ? Stream.error(error!) : Stream.value(allUsers);
@@ -49,6 +59,26 @@ class FakeFriendsRepository implements FriendsRepository {
   Stream<List<FriendMessage>> watchMessages(String chatRoomId) {
     lastChatRoomId = chatRoomId;
     return error != null ? Stream.error(error!) : Stream.value(messages);
+  }
+
+  @override
+  Stream<bool> watchFriendPresence(String friendUid) {
+    lastWatchPresenceFriendUid = friendUid;
+    return error != null ? Stream.error(error!) : Stream.value(presenceResult);
+  }
+
+  @override
+  Stream<String> watchFriendLastMessage(String chatRoomId) {
+    lastWatchLastMessageChatRoomId = chatRoomId;
+    return error != null
+        ? Stream.error(error!)
+        : Stream.value(lastMessageResult);
+  }
+
+  @override
+  Stream<FriendRoomStatus?> watchFriendRoom(String friendUid) {
+    lastWatchRoomFriendUid = friendUid;
+    return error != null ? Stream.error(error!) : Stream.value(roomResult);
   }
 
   @override

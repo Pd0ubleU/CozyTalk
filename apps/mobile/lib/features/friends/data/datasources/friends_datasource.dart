@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 
+import '../../domain/entities/friend_room_status.dart';
 import '../models/app_user_model.dart';
 import '../models/friend_message_model.dart';
 import '../models/friend_model.dart';
@@ -12,6 +14,9 @@ abstract class FriendsDatasource {
   Stream<List<FriendModel>> watchFriends();
   Stream<List<FriendRequestModel>> watchIncomingRequests();
   Stream<List<FriendMessageModel>> watchMessages(String chatRoomId);
+  Stream<bool> watchFriendPresence(String friendUid);
+  Stream<String> watchFriendLastMessage(String chatRoomId);
+  Stream<FriendRoomStatus?> watchFriendRoom(String friendUid);
   Future<void> sendFriendRequest({
     required String toUid,
     required String toDisplayName,
@@ -35,8 +40,9 @@ abstract class FriendsDatasource {
 class FriendsDatasourceImpl implements FriendsDatasource {
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
+  final FirebaseDatabase _database;
 
-  FriendsDatasourceImpl(this._firestore, this._auth);
+  FriendsDatasourceImpl(this._firestore, this._auth, this._database);
 
   @override
   String get currentUid => _auth.currentUser?.uid ?? '';
@@ -115,6 +121,55 @@ class FriendsDatasourceImpl implements FriendsDatasource {
   }
 
   @override
+  Stream<bool> watchFriendPresence(String friendUid) {
+    return _database
+        .ref('user_status/$friendUid')
+        .onValue
+        .map((event) => event.snapshot.exists && event.snapshot.value != null);
+  }
+
+  @override
+  Stream<String> watchFriendLastMessage(String chatRoomId) {
+    return _firestore
+        .collection('friend_messages')
+        .doc(chatRoomId)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .limit(1)
+        .snapshots()
+        .map((snap) {
+          if (snap.docs.isEmpty) return '';
+          final data = Map<String, dynamic>.from(snap.docs.first.data());
+          return data['text'] as String? ?? '';
+        });
+  }
+
+  @override
+  Stream<FriendRoomStatus?> watchFriendRoom(String friendUid) {
+    return _database.ref('user_status/$friendUid').onValue.asyncMap((
+      event,
+    ) async {
+      if (!event.snapshot.exists || event.snapshot.value == null) {
+        return null;
+      }
+      final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+      if (data['status'] != 'in_room') return null;
+      final roomId = data['roomId'] as String?;
+      if (roomId == null) return null;
+      final doc = await _firestore.collection('rooms').doc(roomId).get();
+      if (!doc.exists) return null;
+      final roomData = Map<String, dynamic>.from(doc.data()!);
+      return FriendRoomStatus(
+        roomId: roomId,
+        memberCount: (roomData['memberCount'] as num?)?.toInt() ?? 0,
+        maxUsers: (roomData['maxUsers'] as num?)?.toInt() ?? 2,
+        isLocked: roomData['isLocked'] as bool? ?? false,
+        mode: roomData['mode'] as String? ?? '1v1',
+      );
+    });
+  }
+
+  @override
   Future<void> sendFriendRequest({
     required String toUid,
     required String toDisplayName,
@@ -153,6 +208,9 @@ class FriendsDatasourceImpl implements FriendsDatasource {
     });
 
     await batch.commit();
+    // RTDB friends nodes are written by the onFriendshipCreated CF using admin
+    // credentials, which bypasses the owner-only write rule that would deny
+    // writing the peer's node from this client.
   }
 
   @override

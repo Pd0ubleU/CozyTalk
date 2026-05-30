@@ -243,6 +243,17 @@ class ChatNotifier extends Notifier<ChatState> {
     );
   }
 
+  void forceDisconnect() {
+    if (state.status == SessionStatus.disconnected) return;
+    _cancelSubscriptions();
+    state = state.copyWith(
+      status: SessionStatus.disconnected,
+      sessionId: null,
+      messages: [],
+      typingUsers: [],
+    );
+  }
+
   void _cancelSubscriptions() {
     _messagesSub?.cancel();
     _typingSub?.cancel();

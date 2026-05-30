@@ -48,6 +48,29 @@ gcloud auth application-default login
 
 Without this, interest matching degrades gracefully to random matching — all other features work normally. `dev.sh` / `dev.ps1` will show a warning if this step is skipped.
 
+**2c. Register your Android debug SHA-1 for Google Sign-In** *(one time per dev machine)*
+
+Google Sign-In on Android requires your debug keystore's SHA-1 fingerprint to be registered in Firebase. Without it, the sign-in flow closes immediately with an auth error.
+
+```bash
+# Find your debug keystore (Linux/macOS — may be at either path)
+keytool -list -v \
+  -keystore ~/.config/.android/debug.keystore \
+  -alias androiddebugkey -storepass android -keypass android 2>/dev/null | grep "SHA1:"
+
+# If the above is empty, try:
+keytool -list -v \
+  -keystore ~/.android/debug.keystore \
+  -alias androiddebugkey -storepass android -keypass android 2>/dev/null | grep "SHA1:"
+```
+
+Copy the `SHA1:` value, then:
+
+1. [Firebase Console](https://console.firebase.google.com) → **cozytalk-5d984** → Project Settings → Your apps → Android (`com.example.mobile`) → **Add fingerprint** → paste SHA-1 → Save
+2. On the same page, click **Download google-services.json** and replace `apps/mobile/android/app/google-services.json`
+
+This is per-machine — every developer must do it once. CI uses the release keystore SHA-1 which is already registered.
+
 **3. Start developing**
 
 ```bash
@@ -95,7 +118,7 @@ The suite covers matchmaking (group rooms, 1v1 pool, priority selection, padding
 
 ### `cd apps/mobile && flutter test` — Flutter unit + widget tests
 
-Runs all 347 unit and widget tests for the Flutter app (domain, data, and presentation layers). No emulators needed — all Firebase calls are faked.
+Runs all 1109 unit and widget tests for the Flutter app (domain, data, and presentation layers). No emulators needed — all Firebase calls are faked.
 
 ### `cd apps/mobile && flutter test integration_test/...` — Flutter integration tests
 

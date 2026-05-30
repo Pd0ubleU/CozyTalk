@@ -296,6 +296,46 @@ export const adminFirestoreList = async (
   );
 };
 
+/**
+ * Deletes a Firestore document via the emulator admin REST API.
+ * Bypasses security rules (Bearer owner). No-ops if the document does not exist.
+ */
+export const adminFirestoreDelete = async (path: string): Promise<void> => {
+  const res = await fetch(
+    `http://127.0.0.1:8080/v1/projects/cozytalk-5d984/databases/(default)/documents/${path}`,
+    {
+      method: "DELETE",
+      headers: {Authorization: "Bearer owner"},
+    },
+  );
+  if (!res.ok && res.status !== 404) {
+    throw new Error(
+      `adminFirestoreDelete failed (${res.status}): ${await res.text()}`,
+    );
+  }
+};
+
+/**
+ * Writes a value to an RTDB path via the emulator admin REST API.
+ * Bypasses security rules (Authorization: Bearer owner).
+ * @param {string} path - RTDB path (no leading slash)
+ * @param {unknown} value - JSON-serialisable value; null removes the node
+ */
+export const rtdbSet = async (path: string, value: unknown): Promise<void> => {
+  const params = new URLSearchParams({ns: "cozytalk-5d984-default-rtdb"});
+  const res = await fetch(`http://127.0.0.1:9000/${path}.json?${params}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer owner",
+    },
+    body: JSON.stringify(value),
+  });
+  if (!res.ok) {
+    throw new Error(`rtdbSet failed (${res.status}): ${await res.text()}`);
+  }
+};
+
 export const buildRoom = async (targetSize: number): Promise<string> => {
   signOut();
   await signInAnon();

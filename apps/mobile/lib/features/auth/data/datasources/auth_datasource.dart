@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:google_sign_in/google_sign_in.dart';
 
 import '../models/auth_user_model.dart';
 
@@ -18,6 +17,7 @@ abstract class AuthDatasource {
     required String password,
   });
   Future<void> signOut();
+  Future<void> validateToken();
 }
 
 class AuthDatasourceImpl implements AuthDatasource {
@@ -49,7 +49,6 @@ class AuthDatasourceImpl implements AuthDatasource {
           'role': 'user',
           'displayName': displayName,
           'interest': '',
-          'hatKey': null,
           'moodKey': 'Happy',
           'createdAt': FieldValue.serverTimestamp(),
           'lastSeen': FieldValue.serverTimestamp(),
@@ -68,15 +67,14 @@ class AuthDatasourceImpl implements AuthDatasource {
   @override
   Future<AuthUserModel> signInWithGoogle() async {
     try {
+      final provider = GoogleAuthProvider()
+        ..setCustomParameters({'prompt': 'select_account'});
       final UserCredential credential;
       if (kIsWeb) {
-        credential = await _auth.signInWithPopup(GoogleAuthProvider());
+        credential = await _auth.signInWithPopup(provider);
       } else {
-        final googleUser = await GoogleSignIn.instance.authenticate();
-        final googleAuth = googleUser.authentication;
-        credential = await _auth.signInWithCredential(
-          GoogleAuthProvider.credential(idToken: googleAuth.idToken),
-        );
+        // Uses Chrome Custom Tab — no serverClientId required.
+        credential = await _auth.signInWithProvider(provider);
       }
       final user = credential.user!;
       if (credential.additionalUserInfo?.isNewUser == true) {
@@ -88,7 +86,6 @@ class AuthDatasourceImpl implements AuthDatasource {
           'role': 'user',
           'displayName': displayName,
           'interest': '',
-          'hatKey': null,
           'moodKey': 'Happy',
           'createdAt': FieldValue.serverTimestamp(),
           'lastSeen': FieldValue.serverTimestamp(),
@@ -101,6 +98,8 @@ class AuthDatasourceImpl implements AuthDatasource {
       );
     } on FirebaseAuthException catch (e) {
       throw Exception(_authErrorMessage(e.code));
+    } catch (_) {
+      throw Exception('Sign in failed. Please try again.');
     }
   }
 
@@ -121,7 +120,6 @@ class AuthDatasourceImpl implements AuthDatasource {
         'role': 'user',
         'displayName': displayName,
         'interest': '',
-        'hatKey': null,
         'moodKey': 'Happy',
         'createdAt': FieldValue.serverTimestamp(),
         'lastSeen': FieldValue.serverTimestamp(),
@@ -159,6 +157,13 @@ class AuthDatasourceImpl implements AuthDatasource {
 
   @override
   Future<void> signOut() => _auth.signOut();
+
+  @override
+  Future<void> validateToken() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await user.getIdToken(true);
+  }
 }
 
 // UID-derived seed ensures the same user gets the same name in an empty room; steps forward on collision.
@@ -219,5 +224,7 @@ String _authErrorMessage(String code) => switch (code) {
   'invalid-email' => 'Please enter a valid email address.',
   'weak-password' => 'Password must be at least 6 characters.',
   'too-many-requests' => 'Too many attempts. Please try again later.',
+  // User dismissed the popup — not an error, treat as silent cancellation.
+  'popup-closed-by-user' || 'cancelled-popup-request' => '',
   _ => 'Authentication failed. Please try again.',
 };

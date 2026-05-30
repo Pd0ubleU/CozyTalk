@@ -91,6 +91,7 @@ class MatchmakingState {
   final Room? currentRoom;
   final String? error;
   final String interestText;
+  final String? backgroundTheme;
 
   const MatchmakingState({
     this.status = MatchmakingStatus.idle,
@@ -99,6 +100,7 @@ class MatchmakingState {
     this.currentRoom,
     this.error,
     this.interestText = '',
+    this.backgroundTheme,
   });
 
   MatchmakingState copyWith({
@@ -108,6 +110,7 @@ class MatchmakingState {
     Object? currentRoom = _sentinel,
     Object? error = _sentinel,
     String? interestText,
+    Object? backgroundTheme = _sentinel,
   }) => MatchmakingState(
     status: status ?? this.status,
     roomId: roomId == _sentinel ? this.roomId : roomId as String?,
@@ -117,6 +120,9 @@ class MatchmakingState {
         : currentRoom as Room?,
     error: error == _sentinel ? this.error : error as String?,
     interestText: interestText ?? this.interestText,
+    backgroundTheme: backgroundTheme == _sentinel
+        ? this.backgroundTheme
+        : backgroundTheme as String?,
   );
 }
 
@@ -137,6 +143,10 @@ class MatchmakingNotifier extends Notifier<MatchmakingState> {
   MatchmakingState build() {
     ref.onDispose(_cancelSubscriptions);
     return const MatchmakingState();
+  }
+
+  void setBackgroundTheme(String? theme) {
+    state = state.copyWith(backgroundTheme: theme);
   }
 
   void setInterestText(String text) {
@@ -167,6 +177,7 @@ class MatchmakingNotifier extends Notifier<MatchmakingState> {
           : null;
       final result = await ref.read(_joinGroupRoomProvider)(
         interestText: interest,
+        backgroundTheme: state.backgroundTheme,
       );
       state = state.copyWith(
         status: MatchmakingStatus.matched,
@@ -196,7 +207,9 @@ class MatchmakingNotifier extends Notifier<MatchmakingState> {
       roomId: null,
     );
     try {
-      final roomId = await ref.read(_createCustomRoomProvider)();
+      final roomId = await ref
+          .read(_createCustomRoomProvider)
+          .call(backgroundTheme: state.backgroundTheme);
       state = state.copyWith(
         status: MatchmakingStatus.matched,
         roomId: roomId,
@@ -278,7 +291,9 @@ class MatchmakingNotifier extends Notifier<MatchmakingState> {
       final interest = state.interestText.isNotEmpty
           ? state.interestText
           : null;
-      await ref.read(_join1v1PoolProvider).call(interestText: interest);
+      await ref
+          .read(_join1v1PoolProvider)
+          .call(interestText: interest, backgroundTheme: state.backgroundTheme);
       final uid = ref.read(_matchmakingDatasourceProvider).getCurrentUserId();
       if (uid == null) throw Exception('Not signed in.');
       // Pass _lastKnownRoomId so the stream skips any stale 'matched' entry
@@ -319,9 +334,11 @@ class MatchmakingNotifier extends Notifier<MatchmakingState> {
     }
   }
 
-  // Returns an idle state that preserves interestText across room transitions.
-  MatchmakingState _idleState() =>
-      MatchmakingState(interestText: state.interestText);
+  // Returns an idle state that preserves interestText and backgroundTheme.
+  MatchmakingState _idleState() => MatchmakingState(
+    interestText: state.interestText,
+    backgroundTheme: state.backgroundTheme,
+  );
 
   void _subscribeToRoom(String roomId) {
     _roomSub?.cancel();

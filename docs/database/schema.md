@@ -43,6 +43,7 @@ Rules: read by any signed-in user (broadened from owner-only to support friends 
 | `interestText` | string? | raw interest text |
 | `interestVector` | array? | 256-dim Vertex AI embedding |
 | `roomId` | string? | set by `match1v1Users` CF when matched (1v1 only); `null` initially |
+| `backgroundTheme` | string? | one of `kao_tapu`, `red_lotus_lake`, `sea_of_cloud`, `lumphini_park`; `null` = no theme filter |
 
 Rules: update restricted to `updatedAt` field only (prevents client status manipulation).
 
@@ -63,7 +64,9 @@ Rules: update restricted to `updatedAt` field only (prevents client status manip
 | `isLocked` | boolean | |
 | `paddingUntil` | timestamp? | set when status transitions to `padding` |
 | `createdAt` | timestamp | |
+| `blockList` | array? | merged block list — each entry: `{ blockedBy: uid, userId: uid, amount: number }`. Updated on every join/leave; `amount` = count of current members blocking `userId` |
 | `roomInterestVector` | number[]? | mean of all members' 256-dim Vertex AI interest embeddings; written by `joinGroupRoom` and `match1v1Users` CFs; used for group room cosine similarity matching |
+| `backgroundTheme` | string? | one of `kao_tapu`, `red_lotus_lake`, `sea_of_cloud`, `lumphini_park`; absent when no theme was chosen; acts as hard partition key during matchmaking |
 
 Rules: `users` membership checked for read/write access.
 
@@ -162,6 +165,18 @@ Note: `encryptionKey` is NOT stored here — it lives exclusively in `session_ke
 
 Rules: any authenticated user may create (restricted: `reporterId == uid`, `status == 'pending'`, `reportType` validated, required fields only). Read, update, delete are admin-only.
 
+### `users/{uid}/blocked/{blockedUid}`
+
+Subcollection on each user document storing their explicit block list.
+
+| Field | Type | Notes |
+|---|---|---|
+| `blockedUid` | string | = document ID — UID of the blocked user |
+| `displayName` | string? | display name captured at time of blocking |
+| `blockedAt` | timestamp | server timestamp |
+
+Max 5 entries per user (enforced by `blockUser` CF). Owner read/write only.
+
 ---
 
 ## RTDB Paths
@@ -176,15 +191,16 @@ RTDB instance: `cozytalk-5d984-default-rtdb.asia-southeast1.firebasedatabase.app
 | `nameQueue/{roomId}` | room members | room members | anonymous name assignment — defined in RTDB rules but not actively used in current mobile or CF code; reserved for a future feature |
 | `pool_presence/{uid}` | own UID | own UID | pool presence (removed on disconnect) |
 | `jukebox/{roomId}` | room members | room members | synced music queue state (see jukebox feature) |
-| `user_status/{uid}` | own UID | own UID | global online/in-room presence; `{ status: 'online'\|'in_room', roomId?: string, roomMode?: string }`; written by `OwnStatusNotifier` on auth and matchmaking state changes; node deleted entirely on sign-out |
+| `user_status/{uid}` | own UID **or** friend of `$uid` (via `friends/{uid}/{auth.uid} === true`) | own UID | global online/in-room presence; `{ status: 'online'\|'in_room', roomId?: string, roomMode?: string }`; written by `OwnStatusNotifier` on auth and matchmaking state changes; node deleted entirely on sign-out |
+| `friends/{ownerUid}/{friendUid}` | own `$ownerUid` | own `$ownerUid` | denormalized friendship flag (`true`) used by RTDB security rules to allow friends to read each other's `user_status`; written by `FriendsDatasourceImpl.acceptFriendRequest()` client-side; cleaned up by `onFriendshipDeleted` CF on `friendships` document delete |
 
-Note: `cleanupMember` CF triggers on `rooms/{roomId}/members/{uid}` deletion. `cleanupPoolMember` triggers on `pool_presence/{uid}` deletion. `jukebox/{roomId}` is cleared by `endSession` CF when a session ends. `user_status/{uid}` is managed exclusively by `OwnStatusNotifier` on the client — no CF cleanup.
+Note: `cleanupMember` CF triggers on `rooms/{roomId}/members/{uid}` deletion. `cleanupPoolMember` triggers on `pool_presence/{uid}` deletion. `jukebox/{roomId}` is cleared by `endSession` CF when a session ends. `user_status/{uid}` is managed exclusively by `OwnStatusNotifier` on the client — no CF cleanup. `friends/{ownerUid}/{friendUid}` is cleaned up server-side by `onFriendshipDeleted` CF.
 
 ---
 
 ## Firestore Indexes
 
-`firestore.indexes.json` — 7 composite indexes deployed:
+`firestore.indexes.json` — 8 composite indexes deployed:
 
 | Collection | Fields | Purpose |
 |---|---|---|
@@ -193,6 +209,7 @@ Note: `cleanupMember` CF triggers on `rooms/{roomId}/members/{uid}` deletion. `c
 | `waiting_pool` | `mode ASC, status ASC, updatedAt ASC` | Matchmaking: most-recently-updated waiting user by mode |
 | `reports` | `status ASC, createdAt DESC` | Admin dashboard: pending reports by time |
 | `rooms` | `mode ASC, status ASC, isLocked ASC, memberCount ASC` | Group room picker: available unlocked rooms by fill level |
+| `rooms` | `mode ASC, status ASC, isLocked ASC, backgroundTheme ASC, memberCount ASC` | Theme-filtered group room queries in `joinGroupRoom` (themed users only) |
 | `rooms` | `status ASC, paddingUntil ASC` | `expireRooms` cron: find rooms past their padding window |
 | `friend_requests` | `toUid ASC, status ASC` | Friends: incoming pending requests for a user |
 

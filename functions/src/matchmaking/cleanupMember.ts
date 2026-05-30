@@ -18,6 +18,7 @@ export const cleanupMember = onValueDeleted(
 
     let requeueUid: string | null = null;
     let requeueInterestVector: number[] | null = null;
+    let requeueBackgroundTheme: string | null = null;
 
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(roomRef);
@@ -52,6 +53,8 @@ export const cleanupMember = onValueDeleted(
         if (requeueUid) {
           const mi = data.memberInterests as Record<string, number[]> | null;
           requeueInterestVector = mi?.[requeueUid] ?? null;
+          requeueBackgroundTheme =
+            (data.backgroundTheme as string | null | undefined) ?? null;
         }
       }
 
@@ -92,6 +95,7 @@ export const cleanupMember = onValueDeleted(
         roomId: null,
         interestText: null,
         interestVector: requeueInterestVector,
+        backgroundTheme: requeueBackgroundTheme,
       });
       // Remove the remaining user's RTDB membership so a second cleanupMember
       // invocation decrements memberCount to 0, letting expireRooms clean up.

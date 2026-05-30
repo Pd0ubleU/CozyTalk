@@ -36,6 +36,22 @@ No `Notifier` — this is a stateless service with no UI state.
 - **Remote Config gate**: `content_filtering_enabled` boolean flag — when `false`, `CensorText` returns the input string unchanged (no-op)
 - **No Notifier**: call `ref.read(censorTextProvider)(text)` wherever text censoring is needed (e.g. in `ChatDatasourceImpl` before sending, or in message rendering)
 
+## Feature Flag & Rollback
+
+| Property | Value |
+|---|---|
+| Flag name | `content_filtering_enabled` |
+| Type | boolean |
+| App-side default | `false` (filter off if Remote Config unreachable) |
+| Fetch interval | 1 hour (`minimumFetchInterval` in `main.dart`) |
+| Integration point | `word_filter_provider.dart` — passed as `() => FirebaseRemoteConfig.instance.getBool('content_filtering_enabled')` |
+
+**Enable:** set `content_filtering_enabled = true` in the Firebase Remote Config console and publish. Clients activate on next fetch (within 1 hour).
+
+**Rollback:** set `content_filtering_enabled = false` in the Firebase Remote Config console and publish. Clients propagate within 1 hour. No app release required.
+
+The flag is evaluated live on every `censorText()` call — toggling in the console takes effect for all subsequent calls once clients pick up the new config.
+
 ## Usage
 
 ```dart
@@ -43,5 +59,3 @@ No `Notifier` — this is a stateless service with no UI state.
 final censor = ref.read(censorTextProvider);
 final safe = censor(userInput);
 ```
-
-The Remote Config flag check happens inside `WordFilterDatasourceImpl` on every call — no restart required when the flag toggles.

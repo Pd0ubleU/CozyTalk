@@ -8,12 +8,31 @@ export const onFriendshipDeleted = onDocumentDeleted(
   async (event) => {
     const {friendshipId} = event.params;
     const db = admin.firestore();
-    await deleteSubcollection(
-      db,
-      db.collection("friend_messages").doc(friendshipId).collection("messages"),
+    const rtdb = admin.database();
+
+    const users: string[] = event.data?.data()?.users ?? [];
+
+    await Promise.all([
+      deleteSubcollection(
+        db,
+        db
+          .collection("friend_messages")
+          .doc(friendshipId)
+          .collection("messages"),
+      ),
+      users.length === 2
+        ? Promise.all([
+            rtdb.ref(`friends/${users[0]}/${users[1]}`).remove(),
+            rtdb.ref(`friends/${users[1]}/${users[0]}`).remove(),
+          ])
+        : Promise.resolve(),
+    ]);
+
+    logger.info(
+      "Cleaned up friend messages and RTDB presence on friendship delete",
+      {
+        friendshipId,
+      },
     );
-    logger.info("Cleaned up friend messages on friendship delete", {
-      friendshipId,
-    });
   },
 );

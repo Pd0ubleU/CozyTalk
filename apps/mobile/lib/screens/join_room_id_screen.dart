@@ -39,7 +39,8 @@ class _JoinRoomIdScreenState extends State<JoinRoomIdScreen> {
         arguments: {
           'roomName': 'Room $roomCode',
           'bgImage': 'assets/images/backgrounds/kao_tapu.png',
-          'roomType': 'group',
+          'roomType': 'joinById',
+          'roomId': roomCode,
           'isGroup': true,
         },
       );
@@ -74,39 +75,43 @@ class _JoinRoomIdScreenState extends State<JoinRoomIdScreen> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        width: 52,
-                        height: 52,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.08),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
+                    Semantics(
+                      label: 'Go back',
+                      button: true,
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          width: 52,
+                          height: 52,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 1.5,
                             ),
-                          ],
-                          border: Border.all(
-                            color: Colors.grey.shade300,
-                            width: 1.5,
                           ),
-                        ),
-                        child: SvgPicture.asset(
-                          'assets/images/icons/Back.svg',
-                          width: 26,
-                          height: 26,
+                          child: SvgPicture.asset(
+                            'assets/images/icons/Back.svg',
+                            width: 26,
+                            height: 26,
+                          ),
                         ),
                       ),
                     ),
                     const Spacer(),
-                    const Text(
+                    Text(
                       'Join a Room',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.titleLarge!.copyWith(
                         color: Colors.white,
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
@@ -127,18 +132,21 @@ class _JoinRoomIdScreenState extends State<JoinRoomIdScreen> {
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   const SizedBox(height: 60),
-                  const Text(
+                  Text(
                     'Enter room ID',
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.headlineSmall!.copyWith(
                       fontSize: 24,
                       fontWeight: FontWeight.w900,
                       color: Colors.black,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Ask the host for their code',
-                    style: TextStyle(fontSize: 14, color: Colors.black54),
+                    style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                      fontSize: 14,
+                      color: Colors.black54,
+                    ),
                   ),
                   const SizedBox(height: 30),
 
@@ -153,10 +161,11 @@ class _JoinRoomIdScreenState extends State<JoinRoomIdScreen> {
                           focusNode: _focusNodes[index],
                           autofocus: index == 0,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.headlineSmall!
+                              .copyWith(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
                           keyboardType: TextInputType.text,
                           maxLength: 1,
                           decoration: InputDecoration(
@@ -218,13 +227,14 @@ class _JoinRoomIdScreenState extends State<JoinRoomIdScreen> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Join Room',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
+                          style: Theme.of(context).textTheme.titleLarge!
+                              .copyWith(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
                         ),
                       ),
                     ),

@@ -155,17 +155,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               Positioned(
                                 top: 0,
                                 right: 0,
-                                child: GestureDetector(
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const ProfileEditScreen(),
+                                child: Semantics(
+                                  label: 'Edit profile',
+                                  button: true,
+                                  child: GestureDetector(
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const ProfileEditScreen(),
+                                      ),
                                     ),
-                                  ),
-                                  child: SvgPicture.asset(
-                                    'assets/images/icons/Edit.svg',
-                                    width: 24,
-                                    height: 24,
+                                    child: SvgPicture.asset(
+                                      'assets/images/icons/Edit.svg',
+                                      width: 24,
+                                      height: 24,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -335,28 +340,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  width: 48,
-                  height: 48,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade300, width: 1.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
+              Semantics(
+                label: 'Go back',
+                button: true,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.grey.shade300,
+                        width: 1.5,
                       ),
-                    ],
-                  ),
-                  child: SvgPicture.asset(
-                    'assets/images/icons/Back.svg',
-                    width: 26,
-                    height: 26,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: SvgPicture.asset(
+                      'assets/images/icons/Back.svg',
+                      width: 26,
+                      height: 26,
+                    ),
                   ),
                 ),
               ),

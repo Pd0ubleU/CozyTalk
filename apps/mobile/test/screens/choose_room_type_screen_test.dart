@@ -54,5 +54,27 @@ void main() {
       );
       expect(btn.onPressed, isNotNull);
     });
+
+    group('accessibility', () {
+      testWidgets('interactive elements have semantic labels', (tester) async {
+        final handle = tester.ensureSemantics();
+        try {
+          await tester.pumpWidget(
+            const MaterialApp(home: ChooseRoomTypeScreen()),
+          );
+          await tester.pumpAndSettle();
+          expect(find.bySemanticsLabel('Go back'), findsOneWidget);
+          // 'Close' is an IconButton tooltip inside the join-group dialog;
+          // open the dialog first, then assert via byTooltip.
+          await tester.tap(find.text('Group'));
+          await tester.pump();
+          await tester.tap(find.widgetWithText(ElevatedButton, 'Join Room'));
+          await tester.pumpAndSettle();
+          expect(find.byTooltip('Close'), findsOneWidget);
+        } finally {
+          handle.dispose();
+        }
+      });
+    });
   });
 }

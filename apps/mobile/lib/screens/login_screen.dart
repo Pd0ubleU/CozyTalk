@@ -94,7 +94,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               border: Border.all(color: const Color(0xFF695959), width: 3),
             ),
             child: ClipOval(
-              child: Image.asset('assets/images/Logo.png', fit: BoxFit.cover),
+              child: ExcludeSemantics(
+                child: Image.asset('assets/images/Logo.png', fit: BoxFit.cover),
+              ),
             ),
           ),
         ),
@@ -108,10 +110,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          Text(
             'Welcome back to\nCozyTalk!',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: Theme.of(context).textTheme.titleLarge!.copyWith(
               color: Colors.white,
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -119,10 +121,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'LOGIN',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: Theme.of(context).textTheme.bodyLarge!.copyWith(
               color: AppColors.yellowWarm,
               fontSize: 15,
               fontWeight: FontWeight.bold,
@@ -151,15 +153,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
+              Text(
                 "Don't have an account? ",
-                style: TextStyle(color: Colors.white70, fontSize: 13),
+                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                  color: const Color(0xCCFFFFFF),
+                  fontSize: 13,
+                ),
               ),
               GestureDetector(
                 onTap: _goToSignUp,
-                child: const Text(
+                child: Text(
                   'Sign Up',
-                  style: TextStyle(
+                  style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                     color: AppColors.yellowWarm,
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
@@ -174,10 +179,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               if (!await _checkOnline()) return;
               ref.read(authNotifierProvider.notifier).signInAnonymously();
             },
-            child: const Text(
+            child: Text(
               'Login as a guest',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                 color: Colors.white,
                 fontSize: 13,
                 decoration: TextDecoration.underline,
@@ -188,10 +193,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           const SizedBox(height: 14),
           GestureDetector(
             onTap: () => showAccountSuspendedDialog(context),
-            child: const Text(
+            child: Text(
               '[Test] Account Banned',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white38, fontSize: 11),
+              style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                color: const Color(0xCCFFFFFF),
+                fontSize: 11,
+              ),
             ),
           ),
         ],
@@ -201,7 +209,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Widget _label(String text) => Text(
     text,
-    style: const TextStyle(
+    style: Theme.of(context).textTheme.bodyMedium!.copyWith(
       color: Colors.white,
       fontSize: 14,
       fontWeight: FontWeight.w600,
@@ -217,7 +225,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     controller: controller,
     keyboardType: keyboardType,
     validator: validator,
-    style: const TextStyle(color: Colors.black87, fontSize: 14),
+    style: Theme.of(
+      context,
+    ).textTheme.bodyMedium!.copyWith(color: Colors.black87, fontSize: 14),
     decoration: _inputDecoration(hint),
   );
 
@@ -225,9 +235,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     controller: _passwordController,
     obscureText: _obscurePassword,
     validator: _validatePassword,
-    style: const TextStyle(color: Colors.black87, fontSize: 14),
+    style: Theme.of(
+      context,
+    ).textTheme.bodyMedium!.copyWith(color: Colors.black87, fontSize: 14),
     decoration: _inputDecoration('Enter your password').copyWith(
       suffixIcon: IconButton(
+        tooltip: _obscurePassword ? 'Show password' : 'Hide password',
         icon: Icon(
           _obscurePassword
               ? Icons.visibility_off_outlined
@@ -242,7 +255,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   InputDecoration _inputDecoration(String hint) => InputDecoration(
     hintText: hint,
-    hintStyle: const TextStyle(color: Color(0xFFAAAAAA), fontSize: 14),
+    hintStyle: Theme.of(context).textTheme.bodyMedium!.copyWith(
+      color: const Color(0xFF767676),
+      fontSize: 14,
+    ),
     filled: true,
     fillColor: Colors.white,
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -258,7 +274,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       borderRadius: BorderRadius.circular(10),
       borderSide: const BorderSide(color: AppColors.yellowWarm, width: 1.5),
     ),
-    errorStyle: const TextStyle(color: AppColors.yellowWarm, fontSize: 12),
+    errorStyle: Theme.of(
+      context,
+    ).textTheme.bodySmall!.copyWith(color: AppColors.yellowWarm, fontSize: 12),
     errorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
       borderSide: const BorderSide(color: AppColors.yellowWarm),
@@ -269,17 +287,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ),
   );
 
-  Widget _orDivider() => const Row(
+  Widget _orDivider() => Row(
     children: [
-      Expanded(child: Divider(color: Colors.white38, thickness: 1)),
+      const Expanded(child: Divider(color: Colors.white38, thickness: 1)),
       Padding(
-        padding: EdgeInsets.symmetric(horizontal: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
         child: Text(
           'or',
-          style: TextStyle(color: Colors.white60, fontSize: 13),
+          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+            color: const Color(0xCCFFFFFF),
+            fontSize: 13,
+          ),
         ),
       ),
-      Expanded(child: Divider(color: Colors.white38, thickness: 1)),
+      const Expanded(child: Divider(color: Colors.white38, thickness: 1)),
     ],
   );
 
@@ -308,12 +329,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               height: 22,
             ),
             const SizedBox(width: 10),
-            const Text(
+            Text(
               'Continue with Google',
-              style: TextStyle(
+              style: Theme.of(context).textTheme.bodyLarge!.copyWith(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF4A3228),
+                color: const Color(0xFF4A3228),
               ),
             ),
           ],
@@ -364,9 +385,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : const Text(
+            : Text(
                 'Login',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
       ),
     );

@@ -12,6 +12,7 @@ Quick reference for finding code. Each file maps a domain to exact paths and cla
 - [hello](features/hello.md) — smoke-test CF echo; canonical CA reference implementation
 - [friends](features/friends.md) — friend requests, friend list, permanent direct chat
 - [admin](features/admin.md) — report moderation, ban/unban, dashboard stats, chat log viewer
+- [block](features/block.md) — user-level blocking, block list management, room enforcement
 - [card_shuffle](features/card_shuffle.md) — icebreaker question deck, 100 questions, exhaustion-before-repeat (prototype)
 - [jukebox](features/jukebox.md) — synced YouTube music queue for chat rooms
 - [user_status](features/user_status.md) — RTDB online/in-room/offline presence for any user
@@ -22,7 +23,7 @@ Quick reference for finding code. Each file maps a domain to exact paths and cla
 - [screens](frontend/screens.md) — all production screens with class names, routes, integration status
 
 ## Backend
-- [cloud-functions](backend/cloud-functions.md) — all 21 exported CFs with inputs/outputs
+- [cloud-functions](backend/cloud-functions.md) — all 24 exported CFs with inputs/outputs
 
 ## Database
 - [schema](database/schema.md) — Firestore collections + RTDB paths + security rule summary

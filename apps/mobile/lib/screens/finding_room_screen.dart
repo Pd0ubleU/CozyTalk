@@ -90,9 +90,43 @@ class _FindingRoomScreenState extends ConsumerState<FindingRoomScreen> {
         _notifier?.joinGroupRoom();
       case 'create':
         _notifier?.createCustomRoom();
+      case 'joinById':
+        final roomId = _args?['roomId'] as String? ?? '';
+        _notifier?.joinRoomById(roomId);
       default:
         _notifier?.join1v1Pool();
     }
+  }
+
+  void _goToChat(String roomId) {
+    if (!mounted) return;
+    setState(() => _didMatch = true);
+    final args = _args ?? {};
+    final roomType = args['roomType'] as String? ?? '1v1';
+    final isGroup =
+        roomType == 'group' || roomType == 'create' || roomType == 'joinById';
+    if (roomType == 'create') {
+      _notifier?.setRoomLock(isLocked: true);
+    }
+    final delay = (roomType == 'create' || roomType == 'joinById')
+        ? Duration.zero
+        : const Duration(milliseconds: 700);
+    Future.delayed(delay, () {
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(
+        context,
+        isGroup ? AppRoutes.groupChatScreen : AppRoutes.chatScreen,
+        arguments: {
+          'roomId': roomId,
+          'roomName': args['roomName'] as String? ?? 'Red Lotus Lake',
+          'bgImage':
+              args['bgImage'] as String? ??
+              'assets/images/backgrounds/red_lotus_lake.png',
+          'roomType': roomType,
+          'maxMembers': 5,
+        },
+      );
+    });
   }
 
   String get _timeLabel {
@@ -109,6 +143,7 @@ class _FindingRoomScreenState extends ConsumerState<FindingRoomScreen> {
     return switch (roomType) {
       'group' => (label: 'Group Chat', icon: Icons.groups),
       'create' => (label: 'Private Group', icon: Icons.group_add),
+      'joinById' => (label: 'Join by ID', icon: Icons.vpn_key_rounded),
       _ => (label: '1 on 1 Chat', icon: Icons.person),
     };
   }
@@ -117,19 +152,8 @@ class _FindingRoomScreenState extends ConsumerState<FindingRoomScreen> {
   Widget build(BuildContext context) {
     ref.listen<MatchmakingState>(matchmakingNotifierProvider, (_, next) {
       if (_didMatch) return;
-      if (next.status == MatchmakingStatus.matched) {
-        _didMatch = true;
-        final args = _args ?? {};
-        final isGroup = args['isGroup'] as bool? ?? false;
-        Navigator.pushReplacementNamed(
-          context,
-          isGroup ? AppRoutes.groupChatScreen : AppRoutes.chatScreen,
-          arguments: {
-            'roomId': next.roomId,
-            'roomName': args['roomName'],
-            'bgImage': args['bgImage'],
-          },
-        );
+      if (next.status == MatchmakingStatus.matched && next.roomId != null) {
+        _goToChat(next.roomId!);
       } else if (next.status == MatchmakingStatus.error) {
         // Don't navigate away when offline — the OfflineCard already handles
         // the UI. Only pop if we're actually online and the error is real.

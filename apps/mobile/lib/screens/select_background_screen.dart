@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../features/matchmaking/presentation/providers/matchmaking_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_routes.dart';
 
-class SelectBackgroundScreen extends StatefulWidget {
+class SelectBackgroundScreen extends ConsumerStatefulWidget {
   final String? roomType;
 
   const SelectBackgroundScreen({super.key, this.roomType});
 
   @override
-  State<SelectBackgroundScreen> createState() => _SelectBackgroundScreenState();
+  ConsumerState<SelectBackgroundScreen> createState() =>
+      _SelectBackgroundScreenState();
 }
 
-class _SelectBackgroundScreenState extends State<SelectBackgroundScreen> {
+class _SelectBackgroundScreenState
+    extends ConsumerState<SelectBackgroundScreen> {
   String? selectedLocation;
 
   final List<Map<String, String>> locations = [
@@ -61,31 +65,35 @@ class _SelectBackgroundScreenState extends State<SelectBackgroundScreen> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        width: 52,
-                        height: 52,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.08),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
+                    Semantics(
+                      label: 'Go back',
+                      button: true,
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          width: 52,
+                          height: 52,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 1.5,
                             ),
-                          ],
-                          border: Border.all(
-                            color: Colors.grey.shade300,
-                            width: 1.5,
                           ),
-                        ),
-                        child: SvgPicture.asset(
-                          'assets/images/icons/Back.svg',
-                          width: 26,
-                          height: 26,
+                          child: SvgPicture.asset(
+                            'assets/images/icons/Back.svg',
+                            width: 26,
+                            height: 26,
+                          ),
                         ),
                       ),
                     ),
@@ -199,6 +207,9 @@ class _SelectBackgroundScreenState extends State<SelectBackgroundScreen> {
                           final selectedLocData = locations.firstWhere(
                             (loc) => loc['id'] == selectedLocation,
                           );
+                          ref
+                              .read(matchmakingNotifierProvider.notifier)
+                              .setBackgroundTheme(selectedLocData['id']);
                           Navigator.pushNamed(
                             context,
                             AppRoutes.findingRoom,
@@ -221,9 +232,12 @@ class _SelectBackgroundScreenState extends State<SelectBackgroundScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     "Let's go!",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),

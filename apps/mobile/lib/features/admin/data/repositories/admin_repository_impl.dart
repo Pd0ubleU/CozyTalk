@@ -1,3 +1,4 @@
+import '../../domain/entities/admin_blocked_entry.dart';
 import '../../domain/entities/admin_dashboard_stats.dart';
 import '../../domain/entities/admin_report.dart';
 import '../../domain/entities/admin_user.dart';
@@ -53,4 +54,8 @@ class AdminRepositoryImpl implements AdminRepository {
 
   @override
   Future<void> unbanUser(String uid) => _datasource.unbanUser(uid);
+
+  @override
+  Future<List<AdminBlockedEntry>> getBlockedUsers(String uid) =>
+      _datasource.getBlockedUsers(uid);
 }

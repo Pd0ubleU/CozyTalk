@@ -105,6 +105,74 @@ else
   FAIL=1
 fi
 
+# ── 8. functions: npm test (mirrors CI) ──────────────────────────────────────
+_port_open() {
+  (echo >/dev/tcp/localhost/"$1") 2>/dev/null
+}
+
+_emulators_up() {
+  _port_open 9099 &&
+    _port_open 8080 &&
+    _port_open 9000 &&
+    _port_open 5001
+}
+
+EMULATORS_STARTED=0
+EMULATOR_PID=""
+
+if ! _emulators_up; then
+  printf "  Starting emulators...    "
+  EMULATOR_LOG=$(mktemp)
+  FIREBASE_CLI_TELEMETRY_OPTOUT=1 npx firebase-tools emulators:start \
+    --only auth,firestore,database,functions,pubsub \
+    --project cozytalk-5d984 \
+    > "$EMULATOR_LOG" 2>&1 &
+  EMULATOR_PID=$!
+  EMULATORS_STARTED=1
+
+  READY=0
+  for i in $(seq 1 90); do
+    if _emulators_up; then
+      READY=1
+      break
+    fi
+    sleep 1
+  done
+
+  if [ "$READY" -eq 0 ]; then
+    printf "TIMEOUT\n\n"
+    printf "  Could not start Firebase emulators. Output:\n\n"
+    cat "$EMULATOR_LOG"
+    kill "$EMULATOR_PID" 2>/dev/null || true
+    FAIL=1
+  else
+    printf "ok\n"
+    sleep 10  # ports open before functions finish loading; give them time
+  fi
+fi
+
+_has_adc() {
+  gcloud auth application-default print-access-token > /dev/null 2>&1
+}
+
+if _emulators_up && [ "$FAIL" -eq 0 ]; then
+  if _has_adc; then
+    printf "  npm test...              \n\n"
+    if ! (cd "$REPO/functions" && npm test 2>&1); then
+      printf "\n  ✗  Jest tests failed — fix before pushing.\n\n"
+      FAIL=1
+    fi
+  else
+    printf "  npm test...              SKIPPED\n"
+    printf "  (no ADC credentials — run: gcloud auth application-default login)\n"
+  fi
+fi
+
+if [ "$EMULATORS_STARTED" -eq 1 ] && [ -n "$EMULATOR_PID" ]; then
+  kill "$EMULATOR_PID" 2>/dev/null || true
+fi
+
+
 printf "\n"
 if [ "$FAIL" -eq 0 ]; then
   printf "  ✓  All checks passed.\n\n"

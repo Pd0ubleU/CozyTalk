@@ -8,6 +8,7 @@ class _FakeAuthNotifier extends AuthNotifier {
   int signUpCount = 0;
   int signInWithGoogleCount = 0;
   int signInAnonymouslyCount = 0;
+  String? lastEmail;
 
   final AuthState _initial;
   _FakeAuthNotifier({AuthState initial = const AuthState()})
@@ -17,22 +18,22 @@ class _FakeAuthNotifier extends AuthNotifier {
   AuthState build() => _initial;
 
   @override
-  Future<void> signUp({
-    required String email,
-    required String password,
-  }) async => signUpCount++;
-
-  @override
-  Future<void> signInWithGoogle() async => signInWithGoogleCount++;
-
-  @override
-  Future<void> signInAnonymously() async => signInAnonymouslyCount++;
+  Future<void> signUp({required String email, required String password}) async {
+    signUpCount++;
+    lastEmail = email;
+  }
 
   @override
   Future<void> signIn({
     required String email,
     required String password,
   }) async {}
+
+  @override
+  Future<void> signInWithGoogle() async => signInWithGoogleCount++;
+
+  @override
+  Future<void> signInAnonymously() async => signInAnonymouslyCount++;
 
   @override
   Future<void> signOut() async {}
@@ -42,6 +43,13 @@ Widget _build(_FakeAuthNotifier fake) => ProviderScope(
   overrides: [authNotifierProvider.overrideWith(() => fake)],
   child: const MaterialApp(home: SignupScreen()),
 );
+
+Future<void> _agreeToTerms(WidgetTester tester) async {
+  await tester.tap(find.byType(Checkbox).first);
+  await tester.pump();
+  await tester.tap(find.byType(Checkbox).last);
+  await tester.pump();
+}
 
 void main() {
   group('SignupScreen (production)', () {
@@ -163,6 +171,83 @@ void main() {
       await tester.tap(find.text('Login as a guest'), warnIfMissed: false);
       await tester.pump();
       expect(fake.signInAnonymouslyCount, 1);
+    });
+
+    group('accessibility', () {
+      testWidgets('interactive elements have semantic labels', (tester) async {
+        final handle = tester.ensureSemantics();
+        try {
+          await tester.pumpWidget(_build(_FakeAuthNotifier()));
+          await tester.pumpAndSettle();
+          // Flutter surfaces IconButton tooltip text as a semantics tooltip (not
+          // label), so byTooltip is the correct finder here.
+          expect(find.byTooltip('Toggle password visibility'), findsOneWidget);
+        } finally {
+          handle.dispose();
+        }
+      });
+    });
+
+    testWidgets('blocks @cozytalk.com email with validation error', (
+      tester,
+    ) async {
+      final fake = _FakeAuthNotifier();
+      await tester.pumpWidget(_build(fake));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Enter your email'),
+        'hacker@cozytalk.com',
+      );
+      await _agreeToTerms(tester);
+      await tester.tap(find.byType(ElevatedButton).first);
+      await tester.pump();
+
+      expect(
+        find.text('This email cannot be used to sign up.'),
+        findsOneWidget,
+      );
+      expect(fake.signUpCount, 0);
+    });
+
+    testWidgets('blocks @cozytalk.com email regardless of case', (
+      tester,
+    ) async {
+      final fake = _FakeAuthNotifier();
+      await tester.pumpWidget(_build(fake));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Enter your email'),
+        'Admin@CozyTalk.COM',
+      );
+      await _agreeToTerms(tester);
+      await tester.tap(find.byType(ElevatedButton).first);
+      await tester.pump();
+
+      expect(
+        find.text('This email cannot be used to sign up.'),
+        findsOneWidget,
+      );
+      expect(fake.signUpCount, 0);
+    });
+
+    testWidgets('allows regular email through without admin block error', (
+      tester,
+    ) async {
+      final fake = _FakeAuthNotifier();
+      await tester.pumpWidget(_build(fake));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Enter your email'),
+        'user@example.com',
+      );
+      await _agreeToTerms(tester);
+      await tester.tap(find.byType(ElevatedButton).first);
+      await tester.pump();
+
+      expect(find.text('This email cannot be used to sign up.'), findsNothing);
     });
   });
 }

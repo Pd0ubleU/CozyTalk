@@ -26,17 +26,10 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
           Expanded(
             child: ListView.separated(
               padding: const EdgeInsets.all(20),
-              itemCount: requests.length + 1,
+              itemCount: requests.length,
               separatorBuilder: (_, _) => const SizedBox(height: 16),
-              itemBuilder: (_, i) {
-                if (i < requests.length) {
-                  return _buildCard(
-                    request: requests[i],
-                    isLoading: state.isLoading,
-                  );
-                }
-                return _buildCard();
-              },
+              itemBuilder: (_, i) =>
+                  _buildCard(request: requests[i], isLoading: state.isLoading),
             ),
           ),
         ],
@@ -66,28 +59,35 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  width: 48,
-                  height: 48,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
+              Semantics(
+                label: 'Go back',
+                button: true,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                      border: Border.all(
+                        color: Colors.grey.shade300,
+                        width: 1.5,
                       ),
-                    ],
-                    border: Border.all(color: Colors.grey.shade300, width: 1.5),
-                  ),
-                  child: SvgPicture.asset(
-                    'assets/images/icons/Back.svg',
-                    width: 26,
-                    height: 26,
+                    ),
+                    child: SvgPicture.asset(
+                      'assets/images/icons/Back.svg',
+                      width: 26,
+                      height: 26,
+                    ),
                   ),
                 ),
               ),
@@ -108,12 +108,8 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
   }
 
   // ─── Notification Card ───────────────────────────────────────
-  // request == null renders the static App Update card
-  Widget _buildCard({FriendRequest? request, bool isLoading = false}) {
-    final isRequest = request != null;
-    final imagePath = isRequest
-        ? 'assets/images/icons/Friends.svg'
-        : 'assets/images/icons/Setting.svg';
+  Widget _buildCard({required FriendRequest request, bool isLoading = false}) {
+    const imagePath = 'assets/images/icons/Friends.svg';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -160,9 +156,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        isRequest
-                            ? '${request.fromDisplayName} wants to be friends'
-                            : 'App Update',
+                        '${request.fromDisplayName} wants to be friends',
                         style: const TextStyle(
                           fontWeight: FontWeight.w900,
                           fontSize: 15,
@@ -172,9 +166,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      isRequest
-                          ? _formatTime(request.createdAt)
-                          : '20 April 2026',
+                      _formatTime(request.createdAt),
                       style: const TextStyle(
                         fontSize: 12,
                         color: Colors.black87,
@@ -182,44 +174,35 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
                     ),
                   ],
                 ),
-                if (!isRequest) ...[
-                  const SizedBox(height: 4),
-                  const Text(
-                    'v.2.9 — bug fixes and improvements',
-                    style: TextStyle(fontSize: 13, color: Colors.black87),
-                  ),
-                ],
-                if (isRequest) ...[
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      _buildButton(
-                        label: 'Accept',
-                        backgroundColor: const Color(0xFFDEF1C2),
-                        borderColor: const Color(0xFFC7D2B5),
-                        textColor: Colors.black,
-                        onTap: isLoading
-                            ? null
-                            : () => ref
-                                  .read(friendsNotifierProvider.notifier)
-                                  .acceptRequest(request),
-                      ),
-                      const SizedBox(width: 8),
-                      _buildButton(
-                        label: 'Decline',
-                        backgroundColor: const Color(0xFFCF5733),
-                        borderColor: const Color(0xFFA33615),
-                        textColor: Colors.white,
-                        onTap: isLoading
-                            ? null
-                            : () => ref
-                                  .read(friendsNotifierProvider.notifier)
-                                  .declineRequest(request.id),
-                      ),
-                    ],
-                  ),
-                ],
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    _buildButton(
+                      label: 'Accept',
+                      backgroundColor: const Color(0xFFDEF1C2),
+                      borderColor: const Color(0xFFC7D2B5),
+                      textColor: Colors.black,
+                      onTap: isLoading
+                          ? null
+                          : () => ref
+                                .read(friendsNotifierProvider.notifier)
+                                .acceptRequest(request),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildButton(
+                      label: 'Decline',
+                      backgroundColor: const Color(0xFFCF5733),
+                      borderColor: const Color(0xFFA33615),
+                      textColor: Colors.white,
+                      onTap: isLoading
+                          ? null
+                          : () => ref
+                                .read(friendsNotifierProvider.notifier)
+                                .declineRequest(request.id),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),

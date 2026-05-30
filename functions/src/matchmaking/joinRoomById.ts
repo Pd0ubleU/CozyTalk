@@ -2,6 +2,12 @@ import {onCall, HttpsError} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import {FieldValue} from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
+import {
+  getBlockedUids,
+  isBlockedByRoom,
+  mergeIntoBlockList,
+  type BlockListEntry,
+} from "../user/_blockUtils";
 
 const ROOM_ID_PATTERN = /^[A-Za-z0-9]{5}$/;
 
@@ -52,7 +58,14 @@ export const joinRoomById = onCall(
       throw new HttpsError("resource-exhausted", "Room is full.");
     }
 
-    // Atomic join — verifies count again in case of concurrent joins.
+    // Caller's own block list — fetched once here, then re-checked inside the
+    // transaction below against the transactionally-read room snapshot.
+    const callerBlockedUids = await getBlockedUids(db, uid);
+
+    // Atomic join — re-validates capacity AND block state on the
+    // transactionally-read snapshot. Checking blocks here (not just in the
+    // pre-flight read) closes the race where two users join an empty room
+    // concurrently and each slips past the other's block guard.
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(roomRef);
       if (!snap.exists) throw new HttpsError("not-found", "Room not found.");
@@ -74,11 +87,27 @@ export const joinRoomById = onCall(
         throw new HttpsError("resource-exhausted", "Room is full.");
       }
 
+      const roomBlockList =
+        (d.blockList as BlockListEntry[] | undefined) ?? [];
+      if (isBlockedByRoom(roomBlockList, uid)) {
+        throw new HttpsError(
+          "permission-denied",
+          "You are blocked from this room.",
+        );
+      }
+      if ((d.users as string[]).some((u) => callerBlockedUids.includes(u))) {
+        throw new HttpsError(
+          "permission-denied",
+          "A room member is on your block list.",
+        );
+      }
+
       tx.update(roomRef, {
         users: FieldValue.arrayUnion(uid),
         memberCount: FieldValue.increment(1),
         status: "active",
         paddingUntil: null,
+        blockList: mergeIntoBlockList(roomBlockList, uid, callerBlockedUids),
       });
     });
 

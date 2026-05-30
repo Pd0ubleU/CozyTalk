@@ -39,6 +39,17 @@
       "collectionGroup": "rooms",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "mode", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "isLocked", "order": "ASCENDING" },
+        { "fieldPath": "backgroundTheme", "order": "ASCENDING" },
+        { "fieldPath": "memberCount", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "rooms",
+      "queryScope": "COLLECTION",
+      "fields": [
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "paddingUntil", "order": "ASCENDING" }
       ]

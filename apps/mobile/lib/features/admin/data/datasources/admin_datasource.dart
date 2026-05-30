@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
+import '../../domain/entities/admin_blocked_entry.dart';
 import '../../domain/entities/admin_dashboard_stats.dart';
 import '../models/admin_report_model.dart';
 import '../models/admin_user_model.dart';
@@ -26,6 +27,7 @@ abstract class AdminDatasource {
   });
   Future<void> unbanUser(String uid);
   void dispose();
+  Future<List<AdminBlockedEntry>> getBlockedUsers(String uid);
 }
 
 class AdminDatasourceImpl implements AdminDatasource {
@@ -194,5 +196,24 @@ class AdminDatasourceImpl implements AdminDatasource {
   @override
   Future<void> unbanUser(String uid) async {
     await _functions.httpsCallable('adminUnbanUser').call({'uid': uid});
+  }
+
+  @override
+  Future<List<AdminBlockedEntry>> getBlockedUsers(String uid) async {
+    final result = await _functions
+        .httpsCallable('adminGetBlockedUsers')
+        .call<Map>({'uid': uid});
+    final data = Map<String, dynamic>.from(result.data);
+    final list = (data['blockedUsers'] as List? ?? [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    return list.map((e) {
+      final raw = e['blockedAt'] as String?;
+      return AdminBlockedEntry(
+        uid: e['uid'] as String,
+        displayName: e['displayName'] as String?,
+        blockedAt: raw != null ? DateTime.tryParse(raw) : null,
+      );
+    }).toList();
   }
 }

@@ -209,67 +209,76 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
             child: Row(
               children: [
                 // Back
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: 46,
-                    height: 46,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: Colors.grey.shade300,
-                        width: 1.5,
+                Semantics(
+                  label: 'Go back',
+                  button: true,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 46,
+                      height: 46,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: Colors.grey.shade300,
+                          width: 1.5,
+                        ),
                       ),
-                    ),
-                    child: SvgPicture.asset(
-                      'assets/images/icons/Back.svg',
-                      width: 24,
-                      height: 24,
+                      child: SvgPicture.asset(
+                        'assets/images/icons/Back.svg',
+                        width: 24,
+                        height: 24,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 10),
                 // Avatar — tappable to show profile
-                GestureDetector(
-                  onTap: () => showFriendProfileDialog(
-                    context: context,
-                    friend: _friend,
-                    onNoteSaved: (newNote) => setState(
-                      () => _friend.note = newNote.isNotEmpty ? newNote : null,
-                    ),
-                  ),
-                  child: Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: Colors.grey.shade300,
-                        width: 1.5,
+                Semantics(
+                  label: 'View user profile',
+                  button: true,
+                  child: GestureDetector(
+                    onTap: () => showFriendProfileDialog(
+                      context: context,
+                      friend: _friend,
+                      onNoteSaved: (newNote) => setState(
+                        () =>
+                            _friend.note = newNote.isNotEmpty ? newNote : null,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.06),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 7),
-                        child: Center(
-                          child: _friend.avatar.isNotEmpty
-                              ? LayeredAvatar(boxSize: 34)
-                              : const Icon(
-                                  Icons.person,
-                                  color: Colors.grey,
-                                  size: 28,
-                                ),
+                    child: Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: Colors.grey.shade300,
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 7),
+                          child: Center(
+                            child: _friend.avatar.isNotEmpty
+                                ? LayeredAvatar(boxSize: 34)
+                                : const Icon(
+                                    Icons.person,
+                                    color: Colors.grey,
+                                    size: 28,
+                                  ),
+                          ),
                         ),
                       ),
                     ),
@@ -323,28 +332,32 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                   ),
                 ),
                 // Report button
-                GestureDetector(
-                  onTap: () => showDialog(
-                    context: context,
-                    builder: (_) => const ReportDialog(),
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFCCAA),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: const Color(0xFFCF5733),
-                        width: 1.5,
-                      ),
+                Semantics(
+                  label: 'Report user',
+                  button: true,
+                  child: GestureDetector(
+                    onTap: () => showDialog(
+                      context: context,
+                      builder: (_) => const ReportDialog(),
                     ),
-                    child: SvgPicture.asset(
-                      'assets/images/icons/Report.svg',
-                      width: 22,
-                      height: 22,
-                      colorFilter: const ColorFilter.mode(
-                        Color(0xFFCF5733),
-                        BlendMode.srcIn,
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFCCAA),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFCF5733),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: SvgPicture.asset(
+                        'assets/images/icons/Report.svg',
+                        width: 22,
+                        height: 22,
+                        colorFilter: const ColorFilter.mode(
+                          Color(0xFFCF5733),
+                          BlendMode.srcIn,
+                        ),
                       ),
                     ),
                   ),
@@ -364,7 +377,10 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
       child: Center(
         child: Text(
           _chatDateLabel(),
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+          style: Theme.of(context).textTheme.bodySmall!.copyWith(
+            fontSize: 12,
+            color: Colors.grey.shade600,
+          ),
         ),
       ),
     );
@@ -383,11 +399,15 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
           width: 1.5,
         ),
       ),
-      child: const Text(
+      child: Text(
         'Keep it friendly! Please be respectful and protect your personal info.\n'
         'Report any suspicious behavior to help keep our community safe.',
         textAlign: TextAlign.center,
-        style: TextStyle(fontSize: 13, color: AppColors.brownDeep, height: 1.5),
+        style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+          fontSize: 13,
+          color: AppColors.brownDeep,
+          height: 1.5,
+        ),
       ),
     );
   }
@@ -463,13 +483,19 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                   )
                 : Text(
                     message.text,
-                    style: const TextStyle(fontSize: 15, color: Colors.black87),
+                    style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                      fontSize: 15,
+                      color: Colors.black87,
+                    ),
                   ),
           ),
           const SizedBox(height: 4),
           Text(
             message.time,
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+            style: Theme.of(context).textTheme.labelSmall!.copyWith(
+              fontSize: 11,
+              color: Colors.grey.shade600,
+            ),
           ),
         ],
       ),
@@ -588,31 +614,38 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
             ),
           ),
           const SizedBox(width: 10),
-          GestureDetector(
-            onTap: _sendMessage,
-            child: Container(
-              width: 58,
-              height: 58,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.yellowWarm,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFD49A20), width: 1.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.12),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
+          Semantics(
+            label: 'Send message',
+            button: true,
+            child: GestureDetector(
+              onTap: _sendMessage,
+              child: Container(
+                width: 58,
+                height: 58,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.yellowWarm,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: const Color(0xFFD49A20),
+                    width: 1.5,
                   ),
-                ],
-              ),
-              child: SvgPicture.asset(
-                'assets/images/icons/sent.svg',
-                width: 26,
-                height: 26,
-                colorFilter: const ColorFilter.mode(
-                  Color(0xFF695959),
-                  BlendMode.srcIn,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: SvgPicture.asset(
+                  'assets/images/icons/sent.svg',
+                  width: 26,
+                  height: 26,
+                  colorFilter: const ColorFilter.mode(
+                    Color(0xFF695959),
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
             ),

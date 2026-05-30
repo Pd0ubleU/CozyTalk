@@ -11,6 +11,7 @@ admin.initializeApp({
 setGlobalOptions({maxInstances: 10});
 
 // ── Friends ───────────────────────────────────────────────────────────────────
+export {onFriendshipCreated} from "./friends/createFriendship";
 export {onFriendshipDeleted} from "./friends/removeFriendship";
 // ── Admin ─────────────────────────────────────────────────────────────────────
 export {adminGetDashboard} from "./admin/adminGetDashboard";
@@ -18,6 +19,11 @@ export {adminResolveReport} from "./admin/adminResolveReport";
 export {adminGetChatLog} from "./admin/adminGetChatLog";
 export {adminBanUser} from "./admin/adminBanUser";
 export {adminUnbanUser} from "./admin/adminUnbanUser";
+export {adminGetBlockedUsers} from "./admin/adminGetBlockedUsers";
+
+// ── User ──────────────────────────────────────────────────────────────────────
+export {blockUser} from "./user/blockUser";
+export {unblockUser} from "./user/unblockUser";
 
 // ── Chat (existing) ───────────────────────────────────────────────────────────
 export {sendMessage} from "./chat/sendMessage";

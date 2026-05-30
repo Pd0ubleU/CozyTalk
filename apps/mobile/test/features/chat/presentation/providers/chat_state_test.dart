@@ -1,10 +1,81 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile/features/chat/domain/entities/chat_message.dart';
 import 'package:mobile/features/chat/domain/entities/session_status.dart';
 import 'package:mobile/features/chat/domain/entities/typing_user.dart';
 import 'package:mobile/features/chat/presentation/providers/chat_provider.dart';
 
+class _TestChatNotifier extends ChatNotifier {
+  final ChatState _initial;
+  _TestChatNotifier({required ChatState initial}) : _initial = initial;
+
+  @override
+  ChatState build() => _initial;
+}
+
 void main() {
+  group('ChatNotifier', () {
+    test(
+      'forceDisconnect transitions chatting to disconnected and clears session',
+      () {
+        final container = ProviderContainer(
+          overrides: [
+            chatNotifierProvider.overrideWith(
+              () => _TestChatNotifier(
+                initial: ChatState(
+                  status: SessionStatus.chatting,
+                  sessionId: 's1',
+                  currentUserId: 'u1',
+                  messages: [
+                    ChatMessage(
+                      id: 'm1',
+                      senderId: 'u1',
+                      displayName: 'Alice',
+                      text: 'hi',
+                      timestamp: DateTime(2025),
+                    ),
+                  ],
+                  typingUsers: const [
+                    TypingUser(uid: 'u2', displayName: 'Bob'),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        container.read(chatNotifierProvider.notifier).forceDisconnect();
+
+        final state = container.read(chatNotifierProvider);
+        expect(state.status, SessionStatus.disconnected);
+        expect(state.sessionId, isNull);
+        expect(state.messages, isEmpty);
+        expect(state.typingUsers, isEmpty);
+      },
+    );
+
+    test('forceDisconnect is a no-op when already disconnected', () {
+      final container = ProviderContainer(
+        overrides: [
+          chatNotifierProvider.overrideWith(
+            () => _TestChatNotifier(
+              initial: const ChatState(status: SessionStatus.disconnected),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(chatNotifierProvider.notifier).forceDisconnect();
+
+      expect(
+        container.read(chatNotifierProvider).status,
+        SessionStatus.disconnected,
+      );
+    });
+  });
+
   group('ChatState', () {
     test('initial state has idle status and empty collections', () {
       const state = ChatState();

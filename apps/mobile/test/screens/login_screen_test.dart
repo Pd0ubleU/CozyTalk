@@ -165,5 +165,22 @@ void main() {
       await tester.pump();
       expect(fake.signInAnonymouslyCount, 1);
     });
+
+    group('accessibility', () {
+      testWidgets('interactive elements have semantic labels', (tester) async {
+        final handle = tester.ensureSemantics();
+        try {
+          await tester.pumpWidget(_build(_FakeAuthNotifier()));
+          await tester.pumpAndSettle();
+          // tooltip alternates between 'Show password' and 'Hide password' based
+          // on _obscurePassword state; default is obscured so 'Show password' is active.
+          // Flutter surfaces tooltip text as a semantics tooltip (not label), so
+          // byTooltip is the correct finder here.
+          expect(find.byTooltip('Show password'), findsOneWidget);
+        } finally {
+          handle.dispose();
+        }
+      });
+    });
   });
 }

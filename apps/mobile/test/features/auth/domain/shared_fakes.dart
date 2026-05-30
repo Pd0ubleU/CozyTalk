@@ -64,4 +64,7 @@ class FakeAuthRepository implements AuthRepository {
     signOutCount++;
     if (error != null) throw error!;
   }
+
+  @override
+  Future<void> validateToken() async {}
 }

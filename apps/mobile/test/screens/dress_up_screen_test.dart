@@ -275,5 +275,22 @@ void main() {
       expect(find.byType(SnackBar), findsOneWidget);
       expect(find.byType(DressUpScreen), findsOneWidget);
     });
+
+    group('accessibility', () {
+      testWidgets('interactive elements have semantic labels', (tester) async {
+        final handle = tester.ensureSemantics();
+        try {
+          await tester.pumpWidget(
+            _build(_FakeAvatarNotifier(), _FakeAvatarDecorationNotifier()),
+          );
+          await tester.pumpAndSettle();
+          expect(find.bySemanticsLabel('Undo'), findsOneWidget);
+          expect(find.bySemanticsLabel('Redo'), findsOneWidget);
+          expect(find.bySemanticsLabel('Remove item'), findsOneWidget);
+        } finally {
+          handle.dispose();
+        }
+      });
+    });
   });
 }

@@ -4,6 +4,7 @@ import {FieldValue, Timestamp} from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 import {PADDING_MINUTES} from "./_utils";
 import {meanVector} from "./embeddingService";
+import {getBlockedUids, removeFromBlockList, type BlockListEntry} from "../user/_blockUtils";
 
 export const leaveRoom = onCall(
   {invoker: "public", cors: true},
@@ -40,9 +41,12 @@ export const leaveRoom = onCall(
       return {success: true};
     }
 
+    const leaverBlockedUids = await getBlockedUids(db, uid);
+
     let newCount = 0;
     let requeueUid: string | null = null;
     let requeueInterestVector: number[] | null = null;
+    let requeueBackgroundTheme: string | null = null;
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(roomRef);
       if (!snap.exists) return;
@@ -54,6 +58,10 @@ export const leaveRoom = onCall(
       const update: Record<string, unknown> = {
         users: FieldValue.arrayRemove(uid),
         memberCount: newCount,
+        blockList: removeFromBlockList(
+          (d.blockList as BlockListEntry[] | undefined) ?? [],
+          leaverBlockedUids,
+        ),
       };
 
       if (newCount === 0) {
@@ -67,10 +75,14 @@ export const leaveRoom = onCall(
         update.status = "padding";
         update.paddingUntil = Timestamp.fromMillis(Date.now() + 30 * 1000);
         requeueUid = (d.users as string[]).find((u) => u !== uid) ?? null;
-        // Capture the remaining user's interest vector so it's restored on re-queue.
+        // Capture the remaining user's interest vector and theme so they're
+        // restored on re-queue — interest matching and theme partitioning must
+        // survive a partner-left re-queue.
         if (requeueUid) {
           const mi = d.memberInterests as Record<string, number[]> | null;
           requeueInterestVector = mi?.[requeueUid] ?? null;
+          requeueBackgroundTheme =
+            (d.backgroundTheme as string | null | undefined) ?? null;
         }
       }
 
@@ -115,6 +127,7 @@ export const leaveRoom = onCall(
         roomId: null,
         interestText: null,
         interestVector: requeueInterestVector,
+        backgroundTheme: requeueBackgroundTheme,
       });
       // Remove the remaining user's RTDB membership so cleanupMember fires,
       // decrements memberCount to 0, and lets expireRooms clean up the old room.

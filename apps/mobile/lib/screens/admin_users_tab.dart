@@ -45,11 +45,12 @@ class _AdminUserCardState extends State<AdminUserCard> {
                       children: [
                         Text(
                           u.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 15,
-                            color: AdminC.ink,
-                          ),
+                          style: Theme.of(context).textTheme.bodyLarge!
+                              .copyWith(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15,
+                                color: AdminC.ink,
+                              ),
                         ),
                         if (u.reports > 0) ...[
                           const SizedBox(width: 8),
@@ -64,11 +65,12 @@ class _AdminUserCardState extends State<AdminUserCard> {
                             ),
                             child: Text(
                               '${u.reports} ${u.reports == 1 ? 'report' : 'reports'}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                              ),
+                              style: Theme.of(context).textTheme.labelSmall!
+                                  .copyWith(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                             ),
                           ),
                         ],
@@ -86,10 +88,11 @@ class _AdminUserCardState extends State<AdminUserCard> {
                           const SizedBox(width: 4),
                           Text(
                             u.room,
-                            style: const TextStyle(
-                              fontSize: 11.5,
-                              color: AdminC.inkSoft,
-                            ),
+                            style: Theme.of(context).textTheme.labelSmall!
+                                .copyWith(
+                                  fontSize: 11.5,
+                                  color: AdminC.inkSoft,
+                                ),
                           ),
                           if (u.roomId != '—') ...[
                             const SizedBox(width: 4),
@@ -154,6 +157,15 @@ class _AdminUserCardState extends State<AdminUserCard> {
                         ),
                       );
                     },
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: AdminActionBtn(
+                    label: 'Blocked',
+                    icon: Icons.person_off_outlined,
+                    tone: 'neutral',
+                    onTap: () => widget.onAction('viewBlocked', u),
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -261,9 +273,12 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
                       activeColor: AdminC.brownDarker,
                       side: const BorderSide(color: AdminC.inkSoft),
                     ),
-                    const Text(
+                    Text(
                       'show offline',
-                      style: TextStyle(fontSize: 12, color: AdminC.inkSoft),
+                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                        fontSize: 12,
+                        color: AdminC.inkSoft,
+                      ),
                     ),
                   ],
                 ),
@@ -283,7 +298,10 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
             child: Center(
               child: Text(
                 'No users match "${widget.query}".',
-                style: const TextStyle(color: AdminC.inkSoft, fontSize: 13),
+                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                  color: AdminC.inkSoft,
+                  fontSize: 13,
+                ),
               ),
             ),
           ),
@@ -323,13 +341,13 @@ class AdminUserProfileDialog extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildAvatar(),
+                    _buildAvatar(context),
                     const SizedBox(width: 16),
-                    Expanded(child: _buildInfo()),
+                    Expanded(child: _buildInfo(context)),
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildStats(),
+                _buildStats(context),
                 if (user.banHistory.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   _buildBanHistoryRow(context),
@@ -366,7 +384,7 @@ class AdminUserProfileDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildAvatar() {
+  Widget _buildAvatar(BuildContext context) {
     return Column(
       children: [
         AdminMascotAvatar(size: 72, online: user.online),
@@ -379,7 +397,7 @@ class AdminUserProfileDialog extends StatelessWidget {
           ),
           child: Text(
             'UID: ${user.userId}',
-            style: const TextStyle(
+            style: Theme.of(context).textTheme.labelSmall!.copyWith(
               fontSize: 11,
               color: AdminC.ink,
               fontWeight: FontWeight.w600,
@@ -390,13 +408,13 @@ class AdminUserProfileDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildInfo() {
+  Widget _buildInfo(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'USER PROFILE',
-          style: TextStyle(
+          style: Theme.of(context).textTheme.labelSmall!.copyWith(
             fontSize: 11,
             letterSpacing: 0.8,
             color: AdminC.inkSoft,
@@ -406,16 +424,16 @@ class AdminUserProfileDialog extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           user.name,
-          style: const TextStyle(
+          style: Theme.of(context).textTheme.titleLarge!.copyWith(
             fontSize: 20,
             fontWeight: FontWeight.w800,
             color: AdminC.ink,
           ),
         ),
         const SizedBox(height: 10),
-        const Text(
+        Text(
           'Interest',
-          style: TextStyle(
+          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
             fontWeight: FontWeight.w700,
             fontSize: 13,
             color: AdminC.ink,
@@ -424,7 +442,7 @@ class AdminUserProfileDialog extends StatelessWidget {
         const SizedBox(height: 3),
         Text(
           user.interest.isNotEmpty ? user.interest : '—',
-          style: const TextStyle(
+          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
             fontSize: 13,
             color: AdminC.inkSoft,
             height: 1.4,
@@ -478,19 +496,19 @@ class AdminUserProfileDialog extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Ban history',
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF9F2A18),
+                      color: const Color(0xFF9F2A18),
                     ),
                   ),
                   Text(
                     '${user.banHistory.length} previous ban${user.banHistory.length == 1 ? '' : 's'}',
-                    style: const TextStyle(
+                    style: Theme.of(context).textTheme.labelSmall!.copyWith(
                       fontSize: 11.5,
-                      color: Color(0xFF9F2A18),
+                      color: const Color(0xFF9F2A18),
                     ),
                   ),
                 ],
@@ -507,7 +525,7 @@ class AdminUserProfileDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildStats() {
+  Widget _buildStats(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
@@ -516,11 +534,12 @@ class AdminUserProfileDialog extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _stat('${user.reports}', 'Prior reports', null),
+          _stat(context, '${user.reports}', 'Prior reports', null),
           Container(width: 1, height: 28, color: AdminC.border),
-          _stat(_accountAge(user.joined), 'Account age', null),
+          _stat(context, _accountAge(user.joined), 'Account age', null),
           Container(width: 1, height: 28, color: AdminC.border),
           _stat(
+            context,
             user.banned ? 'Banned' : (user.online ? 'Active' : 'Offline'),
             'Status',
             user.banned
@@ -532,13 +551,18 @@ class AdminUserProfileDialog extends StatelessWidget {
     );
   }
 
-  Widget _stat(String value, String label, Color? valueColor) {
+  Widget _stat(
+    BuildContext context,
+    String value,
+    String label,
+    Color? valueColor,
+  ) {
     return Expanded(
       child: Column(
         children: [
           Text(
             value,
-            style: TextStyle(
+            style: Theme.of(context).textTheme.bodyLarge!.copyWith(
               fontSize: 15,
               fontWeight: FontWeight.w800,
               color: valueColor ?? AdminC.ink,
@@ -547,7 +571,10 @@ class AdminUserProfileDialog extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(fontSize: 11, color: AdminC.inkSoft),
+            style: Theme.of(context).textTheme.labelSmall!.copyWith(
+              fontSize: 11,
+              color: AdminC.inkSoft,
+            ),
           ),
         ],
       ),

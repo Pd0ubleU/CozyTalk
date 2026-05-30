@@ -11,14 +11,20 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
+            Text(
               'Welcome to CozyTalk',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.headlineSmall!.copyWith(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Find someone to talk to',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+              style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                fontSize: 16,
+                color: const Color(0xFF757575),
+              ),
             ),
             const SizedBox(height: 48),
             ElevatedButton(

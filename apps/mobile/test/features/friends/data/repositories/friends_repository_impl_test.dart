@@ -5,6 +5,7 @@ import 'package:mobile/features/friends/data/models/friend_message_model.dart';
 import 'package:mobile/features/friends/data/models/friend_model.dart';
 import 'package:mobile/features/friends/data/models/friend_request_model.dart';
 import 'package:mobile/features/friends/data/repositories/friends_repository_impl.dart';
+import 'package:mobile/features/friends/domain/entities/friend_room_status.dart';
 
 class _FakeFriendsDatasource implements FriendsDatasource {
   final List<AppUserModel> users;
@@ -58,6 +59,16 @@ class _FakeFriendsDatasource implements FriendsDatasource {
     lastChatRoomId = chatRoomId;
     return Stream.value(messages);
   }
+
+  @override
+  Stream<bool> watchFriendPresence(String friendUid) => Stream.value(false);
+
+  @override
+  Stream<String> watchFriendLastMessage(String chatRoomId) => Stream.value('');
+
+  @override
+  Stream<FriendRoomStatus?> watchFriendRoom(String friendUid) =>
+      Stream.value(null);
 
   @override
   Future<void> sendFriendRequest({

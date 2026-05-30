@@ -59,6 +59,7 @@ class _ChooseRoomTypeScreenState extends State<ChooseRoomTypeScreen> {
                       ),
                     ),
                     IconButton(
+                      tooltip: 'Close',
                       icon: const Icon(Icons.close, size: 30),
                       onPressed: () => Navigator.pop(context),
                     ),
@@ -229,28 +230,32 @@ class _ChooseRoomTypeScreenState extends State<ChooseRoomTypeScreen> {
   }
 
   Widget _backBtn(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.popUntil(context, (r) => r.isFirst),
-      child: Container(
-        width: 52,
-        height: 52,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-          border: Border.all(color: Colors.grey.shade300, width: 1.5),
-        ),
-        child: SvgPicture.asset(
-          'assets/images/icons/Back.svg',
-          width: 26,
-          height: 26,
+    return Semantics(
+      label: 'Go back',
+      button: true,
+      child: GestureDetector(
+        onTap: () => Navigator.popUntil(context, (r) => r.isFirst),
+        child: Container(
+          width: 52,
+          height: 52,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+            border: Border.all(color: Colors.grey.shade300, width: 1.5),
+          ),
+          child: SvgPicture.asset(
+            'assets/images/icons/Back.svg',
+            width: 26,
+            height: 26,
+          ),
         ),
       ),
     );

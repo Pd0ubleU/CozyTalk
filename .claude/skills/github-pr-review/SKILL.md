@@ -117,6 +117,44 @@ gh api repos/:owner/:repo/pulls/<PR_NUMBER>/reviews/<REVIEW_ID>/events \
   -f body="Optional overall review message"
 ```
 
+## Comment Writing Style
+
+Every comment body must be written so that someone new to programming can understand it without needing to Google anything.
+
+**The three parts every comment must have:**
+
+1. **What the problem is** — say it plainly in one sentence. No jargon. If you must use a technical term, explain it in the same sentence.
+2. **Why it matters** — one sentence on what could go wrong if it stays as is.
+3. **How to fix it** — show the fix clearly. If there's a code suggestion, also say in plain words what changed and why.
+
+**Tone rules:**
+- Write like a helpful teammate, not a textbook or a code linter.
+- Be direct and friendly — not cold, not sycophantic. No "Great catch!" or "Awesome work!".
+- Short sentences. One idea per sentence.
+- If something is not a problem, say so — don't leave the author guessing.
+
+**Examples of what to avoid vs. what to write:**
+
+❌ Too jargon-heavy:
+> `This violates the single-responsibility principle and introduces tight coupling between the data layer and the presentation layer.`
+
+✅ Clear and human:
+> This function is doing two things at once: fetching data *and* deciding what to show on screen. If we keep them separate, it's much easier to change one without breaking the other. Here's a version that splits them up:
+
+❌ Too terse:
+> `Missing null check.`
+
+✅ Explains the why:
+> If `user` is ever null here (say, the session expired mid-request), this line will crash. Adding a simple check prevents that:
+
+❌ Cringe/overly positive:
+> `Love the effort here! Just a tiny suggestion — maybe consider potentially thinking about adding error handling? No worries if not!`
+
+✅ Friendly but not cringe:
+> This is missing error handling. If the network call fails, the app will freeze with no feedback. Adding a `try/catch` here will show the user a proper error message instead:
+
+---
+
 ## Event Types
 
 Choose the appropriate event type when submitting:

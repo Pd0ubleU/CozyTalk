@@ -69,12 +69,6 @@ void main() {
       expect(find.text('Notifications'), findsOneWidget);
     });
 
-    testWidgets('always shows App Update static card', (tester) async {
-      await tester.pumpWidget(_buildScreen(_FakeFriendsNotifier()));
-      expect(find.text('App Update'), findsOneWidget);
-      expect(find.text('v.2.9 — bug fixes and improvements'), findsOneWidget);
-    });
-
     testWidgets('shows friend request card with sender name', (tester) async {
       final fake = _FakeFriendsNotifier(
         initial: FriendsState(incomingRequests: [_makeRequest()]),
@@ -153,10 +147,23 @@ void main() {
       expect(find.text('Carol wants to be friends'), findsOneWidget);
     });
 
-    testWidgets('shows only App Update when no requests', (tester) async {
+    testWidgets('shows no notification cards when no requests', (tester) async {
       await tester.pumpWidget(_buildScreen(_FakeFriendsNotifier()));
-      expect(find.text('App Update'), findsOneWidget);
       expect(find.textContaining('wants to be friends'), findsNothing);
+      expect(find.text('Accept'), findsNothing);
+    });
+
+    group('accessibility', () {
+      testWidgets('interactive elements have semantic labels', (tester) async {
+        final handle = tester.ensureSemantics();
+        try {
+          await tester.pumpWidget(_buildScreen(_FakeFriendsNotifier()));
+          await tester.pumpAndSettle();
+          expect(find.bySemanticsLabel('Go back'), findsOneWidget);
+        } finally {
+          handle.dispose();
+        }
+      });
     });
   });
 }

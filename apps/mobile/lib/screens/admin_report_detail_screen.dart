@@ -247,9 +247,9 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Report Detail',
-                style: TextStyle(
+                style: Theme.of(context).textTheme.titleLarge!.copyWith(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
                   color: Colors.white,
@@ -257,7 +257,10 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
               ),
               Text(
                 '#${widget.report.id.toUpperCase()} · ${widget.report.time}',
-                style: const TextStyle(fontSize: 12, color: Color(0xBFFFFFFF)),
+                style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                  fontSize: 12,
+                  color: const Color(0xBFFFFFFF),
+                ),
               ),
             ],
           ),
@@ -304,7 +307,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
               children: [
                 Text(
                   'RESOLUTION',
-                  style: TextStyle(
+                  style: Theme.of(context).textTheme.labelSmall!.copyWith(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.4,
@@ -314,7 +317,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
                 const SizedBox(height: 2),
                 Text(
                   outcome.label,
-                  style: TextStyle(
+                  style: Theme.of(context).textTheme.bodyLarge!.copyWith(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: banned ? const Color(0xFF9F2A18) : _C.ink,
@@ -324,9 +327,12 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
                 Text.rich(
                   TextSpan(
                     children: [
-                      const TextSpan(
+                      TextSpan(
                         text: 'by ',
-                        style: TextStyle(fontSize: 11, color: _C.inkSoft),
+                        style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                          fontSize: 11,
+                          color: _C.inkSoft,
+                        ),
                       ),
                       TextSpan(
                         text: outcome.by,
@@ -357,7 +363,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
             ),
             child: Text(
               'Closed',
-              style: TextStyle(
+              style: Theme.of(context).textTheme.labelSmall!.copyWith(
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.4,
@@ -435,7 +441,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
                     ),
                     child: Text(
                       'UID: ${r.reportedUserId}',
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.labelSmall!.copyWith(
                         fontSize: 10,
                         color: _C.ink,
                         fontWeight: FontWeight.w600,
@@ -450,9 +456,9 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'REPORTED USER',
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.labelSmall!.copyWith(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         color: _C.inkSoft,
@@ -462,7 +468,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
                     const SizedBox(height: 2),
                     Text(
                       r.reported,
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.titleLarge!.copyWith(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
                         color: _C.ink,
@@ -471,7 +477,10 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
                     const SizedBox(height: 4),
                     RichText(
                       text: TextSpan(
-                        style: const TextStyle(fontSize: 11, color: _C.inkSoft),
+                        style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                          fontSize: 11,
+                          color: _C.inkSoft,
+                        ),
                         children: [
                           const TextSpan(text: 'seen in '),
                           TextSpan(
@@ -486,9 +495,9 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    const Text(
+                    Text(
                       'Interest',
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                         color: _C.ink,
@@ -497,7 +506,10 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
                     const SizedBox(height: 2),
                     Text(
                       r.reportedInterest,
-                      style: const TextStyle(fontSize: 12, color: _C.inkSoft),
+                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                        fontSize: 12,
+                        color: _C.inkSoft,
+                      ),
                     ),
                   ],
                 ),
@@ -563,10 +575,10 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
                   Expanded(
                     child: Text(
                       reason,
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                         fontWeight: FontWeight.w700,
                         fontSize: 13,
-                        color: Color(0xFF9F2A18),
+                        color: const Color(0xFF9F2A18),
                       ),
                     ),
                   ),
@@ -588,7 +600,11 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
       ),
       child: Text(
         '"${widget.report.context}"',
-        style: const TextStyle(fontSize: 13, color: _C.ink, height: 1.5),
+        style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+          fontSize: 13,
+          color: _C.ink,
+          height: 1.5,
+        ),
       ),
     );
   }
@@ -620,10 +636,10 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
                 'View session transcript',
-                style: TextStyle(
+                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: _C.ink,
@@ -723,7 +739,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                   color: _C.ink,
@@ -734,7 +750,10 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
               else if (sub != null)
                 Text(
                   sub,
-                  style: const TextStyle(fontSize: 11, color: _C.inkSoft),
+                  style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                    fontSize: 11,
+                    color: _C.inkSoft,
+                  ),
                 ),
             ],
           ),
@@ -748,7 +767,9 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
     final reporter = widget.reporterUser;
     final label = Text.rich(
       TextSpan(
-        style: const TextStyle(fontSize: 11, color: _C.inkSoft),
+        style: Theme.of(
+          context,
+        ).textTheme.labelSmall!.copyWith(fontSize: 11, color: _C.inkSoft),
         children: [
           const TextSpan(text: 'from '),
           TextSpan(
@@ -821,10 +842,10 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
                     ),
                   ],
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
                     'Dismiss',
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                       fontWeight: FontWeight.w800,
                       fontSize: 14,
                       color: _C.ink,
@@ -854,14 +875,18 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
                     ),
                   ],
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.block_rounded, color: Colors.white, size: 18),
-                    SizedBox(width: 8),
+                    const Icon(
+                      Icons.block_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
                     Text(
                       'Ban user',
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                         fontWeight: FontWeight.w800,
                         fontSize: 14,
                         color: Colors.white,
@@ -920,7 +945,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
                     Expanded(
                       child: Text(
                         'Ban ${widget.report.reported}',
-                        style: const TextStyle(
+                        style: Theme.of(context).textTheme.titleLarge!.copyWith(
                           fontWeight: FontWeight.w800,
                           fontSize: 18,
                           color: _C.ink,
@@ -984,9 +1009,11 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
   }
 
   List<Widget> _buildBanStep1() => [
-    const Text(
+    Text(
       'Why are you banning this user? Choose one or more.',
-      style: TextStyle(fontSize: 13, color: _C.inkSoft),
+      style: Theme.of(
+        context,
+      ).textTheme.bodyMedium!.copyWith(fontSize: 13, color: _C.inkSoft),
     ),
     const SizedBox(height: 12),
     ...const [
@@ -1040,7 +1067,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
               Expanded(
                 child: Text(
                   r,
-                  style: const TextStyle(
+                  style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: 13.5,
                     color: _C.ink,
@@ -1076,9 +1103,11 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
   ];
 
   List<Widget> _buildBanStep2() => [
-    const Text(
+    Text(
       'How long should the ban last?',
-      style: TextStyle(fontSize: 13, color: _C.inkSoft),
+      style: Theme.of(
+        context,
+      ).textTheme.bodyMedium!.copyWith(fontSize: 13, color: _C.inkSoft),
     ),
     const SizedBox(height: 12),
     GridView.count(
@@ -1104,7 +1133,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
             ),
             child: Text(
               d,
-              style: TextStyle(
+              style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                 fontWeight: FontWeight.w800,
                 fontSize: 14,
                 color: active ? const Color(0xFFFFF6E2) : _C.ink,
@@ -1133,7 +1162,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
           Expanded(
             child: Text.rich(
               TextSpan(
-                style: const TextStyle(
+                style: Theme.of(context).textTheme.bodySmall!.copyWith(
                   fontSize: 12.5,
                   color: _C.ink,
                   height: 1.5,
@@ -1204,7 +1233,7 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
           Expanded(
             child: Text.rich(
               TextSpan(
-                style: const TextStyle(
+                style: Theme.of(context).textTheme.bodySmall!.copyWith(
                   fontSize: 12.5,
                   color: _C.ink,
                   height: 1.5,
@@ -1233,9 +1262,11 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
       ),
     ),
     const SizedBox(height: 12),
-    const Text(
+    Text(
       'Add a note about this ban (optional).',
-      style: TextStyle(fontSize: 13, color: _C.inkSoft),
+      style: Theme.of(
+        context,
+      ).textTheme.bodyMedium!.copyWith(fontSize: 13, color: _C.inkSoft),
     ),
     const SizedBox(height: 12),
     TextField(
@@ -1245,7 +1276,9 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
       decoration: InputDecoration(
         hintText:
             'e.g. Sent crypto giveaway links to 30+ users within minutes.',
-        hintStyle: const TextStyle(color: _C.inkSoft, fontSize: 12.5),
+        hintStyle: Theme.of(
+          context,
+        ).textTheme.bodySmall!.copyWith(color: _C.inkSoft, fontSize: 12.5),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: _C.border),
@@ -1262,7 +1295,11 @@ class _AdminReportDetailScreenState extends State<AdminReportDetailScreen> {
         filled: true,
         fillColor: const Color(0xFFFAF5EB),
       ),
-      style: const TextStyle(fontSize: 13, color: _C.ink, height: 1.5),
+      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+        fontSize: 13,
+        color: _C.ink,
+        height: 1.5,
+      ),
     ),
     const SizedBox(height: 14),
     Row(
@@ -1305,7 +1342,7 @@ class _MiniStat extends StatelessWidget {
       children: [
         Text(
           value,
-          style: TextStyle(
+          style: Theme.of(context).textTheme.bodyLarge!.copyWith(
             fontSize: 15,
             fontWeight: FontWeight.w800,
             color: valueColor ?? _C.ink,
@@ -1313,7 +1350,7 @@ class _MiniStat extends StatelessWidget {
         ),
         Text(
           label,
-          style: const TextStyle(
+          style: Theme.of(context).textTheme.labelSmall!.copyWith(
             fontSize: 10,
             fontWeight: FontWeight.w600,
             color: _C.inkSoft,
@@ -1358,7 +1395,7 @@ class _ModalBtn extends StatelessWidget {
               ],
               Text(
                 label,
-                style: TextStyle(
+                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                   color: fg,
                   fontWeight: FontWeight.w800,
                   fontSize: 14,
@@ -1431,20 +1468,22 @@ class _ChatTranscriptSheet extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Chat Transcript',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF1F1A18),
-                              ),
+                              style: Theme.of(context).textTheme.titleMedium!
+                                  .copyWith(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF1F1A18),
+                                  ),
                             ),
                             Text(
                               'Session $sessionId',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Color(0xFF6B5F5A),
-                              ),
+                              style: Theme.of(context).textTheme.labelSmall!
+                                  .copyWith(
+                                    fontSize: 11,
+                                    color: const Color(0xFF6B5F5A),
+                                  ),
                             ),
                           ],
                         ),
@@ -1466,12 +1505,12 @@ class _ChatTranscriptSheet extends StatelessWidget {
             ),
             Expanded(
               child: messages.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
                         'No messages in this session',
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                           fontSize: 13,
-                          color: Color(0xFF6B5F5A),
+                          color: const Color(0xFF6B5F5A),
                         ),
                       ),
                     )
@@ -1502,11 +1541,14 @@ class _ChatTranscriptSheet extends StatelessWidget {
                                     name.isNotEmpty
                                         ? name[0].toUpperCase()
                                         : '?',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFF3F3230),
-                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall!
+                                        .copyWith(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                          color: const Color(0xFF3F3230),
+                                        ),
                                   ),
                                 ),
                               ),
@@ -1519,30 +1561,39 @@ class _ChatTranscriptSheet extends StatelessWidget {
                                       children: [
                                         Text(
                                           name,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w800,
-                                            color: Color(0xFF1F1A18),
-                                          ),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall!
+                                              .copyWith(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w800,
+                                                color: const Color(0xFF1F1A18),
+                                              ),
                                         ),
                                         const SizedBox(width: 6),
                                         Text(
                                           ts,
-                                          style: const TextStyle(
-                                            fontSize: 10,
-                                            color: Color(0xFF6B5F5A),
-                                          ),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelSmall!
+                                              .copyWith(
+                                                fontSize: 10,
+                                                color: const Color(0xFF6B5F5A),
+                                              ),
                                         ),
                                       ],
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
                                       text,
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        color: Color(0xFF1F1A18),
-                                        height: 1.5,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium!
+                                          .copyWith(
+                                            fontSize: 13,
+                                            color: const Color(0xFF1F1A18),
+                                            height: 1.5,
+                                          ),
                                     ),
                                   ],
                                 ),
@@ -1568,7 +1619,10 @@ class _ChatTranscriptSheet extends StatelessWidget {
                     ? 'No messages recorded'
                     : 'Exported: $exportedAt · ${messages.length} messages',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 11, color: Color(0xFF6B5F5A)),
+                style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                  fontSize: 11,
+                  color: const Color(0xFF6B5F5A),
+                ),
               ),
             ),
           ],

@@ -107,6 +107,12 @@ class _MatchmakingTestScreenState extends ConsumerState<MatchmakingTestScreen> {
                 onChanged: notifier.setInterestText,
               ),
               const SizedBox(height: 12),
+              _ThemeSelector(
+                selected: state.backgroundTheme,
+                enabled: !isBusy && !isMatched,
+                onChanged: notifier.setBackgroundTheme,
+              ),
+              const SizedBox(height: 12),
               _ActionButtons(
                 isBusy: isBusy,
                 isMatched: isMatched,
@@ -342,6 +348,58 @@ class _ActionButtons extends StatelessWidget {
   }
 }
 
+// ── Background theme selector ─────────────────────────────────────────────────
+
+const _kThemes = [
+  (id: 'kao_tapu', label: 'Kao Tapu'),
+  (id: 'red_lotus_lake', label: 'Red Lotus Lake'),
+  (id: 'sea_of_cloud', label: 'Sea of Cloud'),
+  (id: 'lumphini_park', label: 'Lumphini Park'),
+];
+
+class _ThemeSelector extends StatelessWidget {
+  final String? selected;
+  final bool enabled;
+  final ValueChanged<String?> onChanged;
+
+  const _ThemeSelector({
+    required this.selected,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Room theme (optional)',
+          style: Theme.of(
+            context,
+          ).textTheme.labelMedium?.copyWith(color: Colors.grey[600]),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: _kThemes.map((theme) {
+            final isSelected = selected == theme.id;
+            return FilterChip(
+              key: Key('theme_chip_${theme.id}'),
+              label: Text(theme.label),
+              selected: isSelected,
+              onSelected: enabled
+                  ? (_) => onChanged(isSelected ? null : theme.id)
+                  : null,
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
 class _JoinByIdRow extends StatelessWidget {
   final List<TextEditingController> controllers;
   final List<FocusNode> focusNodes;
@@ -507,6 +565,7 @@ class _DebugPanelState extends ConsumerState<_DebugPanel> {
                   children: [
                     _row('uid', uid, maxLen: 28),
                     _row('status', state.status.name),
+                    _row('theme', state.backgroundTheme ?? 'randomized'),
                     _row('roomId', state.roomId ?? '—'),
                     _row('isNewRoom', state.isNewRoom.toString()),
                     if (room != null) ...[

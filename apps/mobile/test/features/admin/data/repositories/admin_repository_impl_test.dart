@@ -3,6 +3,7 @@ import 'package:mobile/features/admin/data/datasources/admin_datasource.dart';
 import 'package:mobile/features/admin/data/models/admin_report_model.dart';
 import 'package:mobile/features/admin/data/models/admin_user_model.dart';
 import 'package:mobile/features/admin/data/repositories/admin_repository_impl.dart';
+import 'package:mobile/features/admin/domain/entities/admin_blocked_entry.dart';
 import 'package:mobile/features/admin/domain/entities/admin_dashboard_stats.dart';
 
 class _FakeAdminDatasource implements AdminDatasource {
@@ -97,6 +98,12 @@ class _FakeAdminDatasource implements AdminDatasource {
 
   @override
   void dispose() {}
+
+  @override
+  Future<List<AdminBlockedEntry>> getBlockedUsers(String uid) async {
+    if (error != null) throw error!;
+    return [];
+  }
 }
 
 AdminReportModel _makeReportModel(String id) => AdminReportModel.fromJson({

@@ -1,13 +1,31 @@
 # Cloud Functions
 
-21 exported functions total. All in `functions/src/`. Deployed via Firebase CLI.
+24 exported functions total. All in `functions/src/`. Deployed via Firebase CLI.
 
 Firebase project: `cozytalk-5d984`
 Default region: `us-central1` (unless noted)
 
 ---
 
-## Admin (5 functions)
+## User (2 functions)
+
+### `blockUser`
+`functions/src/user/blockUser.ts`
+- **Trigger:** callable (authenticated)
+- **Input:** `{ targetUid: string, displayName?: string }`
+- **Process:** Validates caller ≠ target. In a Firestore transaction, reads `users/{callerUid}/blocked/` and enforces the max 5 blocked users atomically (so concurrent calls cannot bypass the cap). If target is already blocked, idempotently updates `displayName`. Otherwise writes `{ blockedUid, displayName, blockedAt }` to `users/{callerUid}/blocked/{targetUid}`.
+- **Output:** `{ success: true }` or `{ success: false, reason: "max_blocked_reached" }`
+
+### `unblockUser`
+`functions/src/user/unblockUser.ts`
+- **Trigger:** callable (authenticated)
+- **Input:** `{ targetUid: string }`
+- **Process:** Deletes `users/{callerUid}/blocked/{targetUid}`. Idempotent — no error if not blocked.
+- **Output:** `{ success: true }`
+
+---
+
+## Admin (6 functions)
 
 All admin functions are callable, deployed to `us-central1`. Every function verifies the caller has `role == "admin"` in `users/{uid}` via admin SDK.
 
@@ -46,6 +64,13 @@ All admin functions are callable, deployed to `us-central1`. Every function veri
 - **Process:** Reads user; rejects if not banned. Builds a history record from current ban fields (including `unbannedAt: Timestamp.now()`, `unbannedBy: callerUid`). Deletes all active ban fields from `users/{uid}`. Appends history record to `users/{uid}.banHistory` via `FieldValue.arrayUnion`.
 - **Output:** `{ success: true }` or `{ success: false, reason: "user_not_found" | "not_banned" }`
 
+### `adminGetBlockedUsers`
+`functions/src/admin/adminGetBlockedUsers.ts`
+- **Trigger:** callable (admin only)
+- **Input:** `{ uid: string }`
+- **Process:** Reads `users/{uid}/blocked/` subcollection ordered by `blockedAt` descending. Returns serialized list with `blockedAt` as ISO string.
+- **Output:** `{ blockedUsers: Array<{ uid, displayName, blockedAt }> }`
+
 ---
 
 ## Chat (3 functions)
@@ -78,8 +103,8 @@ All admin functions are callable, deployed to `us-central1`. Every function veri
 ### `join1v1Pool`
 `functions/src/matchmaking/join1v1Pool.ts`
 - **Trigger:** callable (authenticated)
-- **Input:** `{ interestText?: string }`
-- **Process:** Adds user to `waiting_pool/{uid}` with `status: waiting`. If `interestText` provided, generates embedding via Vertex AI and stores 256-dim vector. Sets `pool_presence/{uid}` in RTDB.
+- **Input:** `{ interestText?: string, backgroundTheme?: string }`
+- **Process:** Adds user to `waiting_pool/{uid}` with `status: waiting`. If `interestText` provided, generates embedding via Vertex AI and stores 256-dim vector; if Vertex AI is unavailable or rate-limited the error is caught and the user joins with `interestVector: null`, falling back to random matching. If `backgroundTheme` provided, validates against the four allowed IDs (`kao_tapu`, `red_lotus_lake`, `sea_of_cloud`, `lumphini_park`) — invalid values are silently dropped to `null`. Sets `pool_presence/{uid}` in RTDB.
 - **Output:** `{ success: true }`
 
 ### `cancel1v1Pool`
@@ -92,35 +117,35 @@ All admin functions are callable, deployed to `us-central1`. Every function veri
 ### `match1v1Users`
 `functions/src/matchmaking/match1v1Users.ts`
 - **Trigger:** Firestore `onDocumentCreated` — `waiting_pool/{uid}` — **region: `asia-southeast1`**
-- **Process:** 2-phase atomic Firestore transaction. Finds best candidate by cosine similarity of interest vectors (threshold 0.65) from a window of up to **20** candidates. Creates `rooms/{roomId}` with `mode: 1v1`, `status: active`. Removes both users from pool. Writes match result to RTDB.
+- **Process:** 2-phase atomic Firestore transaction over a window of up to **20** candidates. Filters out candidate pairs where either user has blocked the other (read cost: 1 + N block-list subcollection reads). If the triggering user has a `backgroundTheme`, also hard-filters candidates to same-theme or unthemed users (unthemed = flexible, adopts the room's theme); the only blocked pairing is two users with different non-null themes, and unthemed triggers match anyone. Finds best candidate by cosine similarity of interest vectors (threshold 0.65). Creates `rooms/{roomId}` with `mode: 1v1`, `status: active`, and `backgroundTheme` always written (valid string or `null`). Removes both users from pool. Writes match result to RTDB. **Error recovery:** if Phase 2 (room creation) or Phase 3 (finalization) fails, cleanup writes rethrow on failure rather than swallowing — prevents a candidate from being permanently stuck in `"matching"` status if a secondary write fails mid-cleanup.
 - **Output:** void (trigger)
 
 ### `joinGroupRoom`
 `functions/src/matchmaking/joinGroupRoom.ts`
 - **Trigger:** callable (authenticated)
-- **Input:** `{ interestText?: string }`
-- **Process:** 3-phase match: find candidate group rooms → compute cosine similarity → join best match or create new group room. Room capacity 2–5 users.
+- **Input:** `{ interestText?: string, backgroundTheme?: string }`
+- **Process:** 3-phase match: find candidate group rooms → compute cosine similarity → join best match or create new group room. If `backgroundTheme` is provided, Firestore queries are filtered to same-theme rooms only (themed users never land in a different-theme room); unthemed users see all rooms and may join themed rooms. Room capacity 2–5 users. `backgroundTheme` is always written on created rooms (valid string or `null`). Before joining, fetches the caller's blocked list and rejects the join if the caller's UID appears in the room's `blockList` (blocked by an existing member) or if any room member is in the caller's blocked list; on successful join, merges the caller's blocked UIDs into `rooms/{roomId}.blockList`. Requires composite Firestore index on `(mode, status, isLocked, backgroundTheme, memberCount)` — deployed in `firestore.indexes.json`.
 - **Output:** `{ roomId: string, isNewRoom: boolean }`
 
 ### `createCustomRoom`
 `functions/src/matchmaking/createCustomRoom.ts`
 - **Trigger:** callable (authenticated)
-- **Input:** none (or optional config TBD)
-- **Process:** Generates 5-char crypto-random room ID. Creates `rooms/{roomId}` with `mode: group`, `roomType: custom`, `status: active`. Adds creator to `rooms/{roomId}/members` in RTDB.
+- **Input:** `{ backgroundTheme?: string }`
+- **Process:** Generates 5-char crypto-random room ID. Creates `rooms/{roomId}` with `mode: group`, `roomType: custom`, `status: active`. `backgroundTheme` is always written (valid string when provided and valid, otherwise `null`). Adds creator to `rooms/{roomId}/members` in RTDB.
 - **Output:** `{ roomId: string }`
 
 ### `joinRoomById`
 `functions/src/matchmaking/joinRoomById.ts`
 - **Trigger:** callable (authenticated)
 - **Input:** `{ roomId: string }`
-- **Process:** Validates room exists, is not expired/padding, not locked, not full. Adds caller to `rooms/{roomId}.users` and RTDB members. Returns room info.
+- **Process:** Validates room exists, is not expired/padding, not locked, not full. Before joining, fetches the caller's blocked list. Rejects the join if the caller's UID appears in the room's `blockList` (blocked by an existing member) or if any room member is in the caller's blocked list. On successful join, merges the caller's blocked UIDs into `rooms/{roomId}.blockList`. Adds caller to `rooms/{roomId}.users` and RTDB members. Returns room info.
 - **Output:** `{ roomId: string, mode: string, roomType: string }`
 
 ### `leaveRoom`
 `functions/src/matchmaking/leaveRoom.ts`
 - **Trigger:** callable (authenticated)
 - **Input:** `{ roomId: string }`
-- **Process:** Removes caller from `rooms/{roomId}.users`. If room empty, tombstones it. Clears RTDB member node.
+- **Process:** Removes caller from `rooms/{roomId}.users`, decrementing the leaver's entries in `rooms/{roomId}.blockList` and removing entries with `amount = 0`. If room empty, tombstones it (`status: padding`). Clears RTDB member, typing, and presence nodes. For 1v1 rooms: if one user remains after the caller leaves, transitions the room to a 30-second padding window and immediately re-queues the remaining user in `waiting_pool` with their original `interestVector` and the room's `backgroundTheme` preserved — ensuring theme partitioning survives a partner-left re-queue.
 - **Output:** `{ success: true }`
 
 ### `setRoomLock`
@@ -139,7 +164,7 @@ All admin functions are callable, deployed to `us-central1`. Every function veri
 ### `cleanupMember`
 `functions/src/matchmaking/cleanupMember.ts`
 - **Trigger:** RTDB `onValueDeleted` — `rooms/{roomId}/members/{uid}` — **region: `asia-southeast1`**
-- **Process:** When a member's RTDB presence node is deleted (disconnect), triggers room cleanup. If room now empty, tombstones Firestore room.
+- **Process:** When a member's RTDB presence node is deleted (network-drop disconnect), runs server-side room cleanup. If room is now empty, tombstones the Firestore room (`status: padding`). For 1v1 rooms with one user remaining: re-queues them in `waiting_pool` with their original `interestVector` and the room's `backgroundTheme` preserved, then removes their RTDB membership so a second invocation can decrement `memberCount` to 0 and let `expireRooms` tombstone the room. Mirrors the re-queue behaviour of `leaveRoom` for the disconnect (unclean exit) path.
 - **Output:** void (trigger)
 
 ### `cleanupPoolMember`
@@ -150,12 +175,18 @@ All admin functions are callable, deployed to `us-central1`. Every function veri
 
 ---
 
-## Friends (1 function)
+## Friends (2 functions)
+
+### `onFriendshipCreated`
+`functions/src/friends/createFriendship.ts`
+- **Trigger:** Firestore `onDocumentCreated` — `friendships/{friendshipId}`
+- **Process:** When a `friendships` doc is created, writes `friends/{uid1}/{uid2} = true` and `friends/{uid2}/{uid1} = true` in RTDB using admin credentials. Admin credentials are required because the client-side RTDB rule is owner-only (`auth.uid == $ownerUid`), which would deny writing the peer's node. These nodes gate the `user_status` read rule that allows friends to see each other's presence.
+- **Output:** void (trigger)
 
 ### `onFriendshipDeleted`
 `functions/src/friends/removeFriendship.ts`
 - **Trigger:** Firestore `onDocumentDeleted` — `friendships/{friendshipId}`
-- **Process:** When a `friendships` doc is deleted, deletes the entire `friend_messages/{friendshipId}/messages` subcollection to prevent orphaned data consuming storage indefinitely.
+- **Process:** When a `friendships` doc is deleted, deletes the entire `friend_messages/{friendshipId}/messages` subcollection to prevent orphaned data consuming storage indefinitely. Also removes both RTDB `friends/{uid1}/{uid2}` and `friends/{uid2}/{uid1}` nodes so the `user_status` read rule reverts to owner-only.
 - **Output:** void (trigger)
 
 ---
@@ -184,3 +215,24 @@ All admin functions are callable, deployed to `us-central1`. Every function veri
 - `generateKey()` — `crypto.randomBytes(32)` hex string for AES-256
 - `cosineSimilarity(a, b)` — dot product / magnitudes; returns 0 for zero vectors
 - `RoomData` interface — Firestore room document shape
+
+---
+
+## Operational Scripts
+
+### `tools/setup-firestore-ttl.sh`
+One-time idempotent script that applies the Firestore TTL policy for `chat_rooms/{id}/messages.expiresAt`.
+
+`sendMessage` sets `expiresAt = now + 3 days` on every message. Without the TTL policy in place, messages from crashed or abandoned sessions (where `endSession` never fired) persist in Firestore indefinitely — violating the privacy guarantee.
+
+**Must be run once per Firebase project.** Safe to re-run (gcloud is idempotent for TTL field definitions).
+
+```bash
+# Prerequisites: gcloud authenticated, project set to cozytalk-5d984
+gcloud auth login
+gcloud config set project cozytalk-5d984
+
+bash tools/setup-firestore-ttl.sh
+```
+
+**Verify:** Firebase Console → Firestore → Data → TTL policies. Look for collection group `messages`, field `expiresAt`. Propagation to existing documents can take up to 24 hours after first deployment.

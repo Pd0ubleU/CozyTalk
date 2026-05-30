@@ -18,9 +18,11 @@ class _FakeMatchmakingNotifier extends MatchmakingNotifier {
   int leaveRoomCalls = 0;
   int setInterestTextCalls = 0;
   int loadSavedInterestTextCalls = 0;
+  int setBackgroundThemeCalls = 0;
   String? lastJoinByIdArg;
   bool? lastSetRoomLockValue;
   String? lastInterestText;
+  String? lastBackgroundTheme;
 
   _FakeMatchmakingNotifier({MatchmakingState? initial})
     : _initial = initial ?? const MatchmakingState();
@@ -63,6 +65,13 @@ class _FakeMatchmakingNotifier extends MatchmakingNotifier {
   @override
   Future<void> loadSavedInterestText() async {
     loadSavedInterestTextCalls++;
+  }
+
+  @override
+  void setBackgroundTheme(String? theme) {
+    setBackgroundThemeCalls++;
+    lastBackgroundTheme = theme;
+    state = state.copyWith(backgroundTheme: theme);
   }
 }
 
@@ -354,10 +363,12 @@ void main() {
       await tester.pumpWidget(_pump(fake: fake));
 
       for (var i = 0; i < 5; i++) {
+        await tester.ensureVisible(find.byKey(Key('room_id_field_$i')));
         await tester.enterText(find.byKey(Key('room_id_field_$i')), 'ABCDE'[i]);
         await tester.pump();
       }
 
+      await tester.ensureVisible(find.text('Join by ID'));
       await tester.tap(find.text('Join by ID'));
       await tester.pump();
 
@@ -397,6 +408,91 @@ void main() {
       await tester.pump();
 
       expect(fake.lastSetRoomLockValue, isNotNull);
+    });
+  });
+
+  group('MatchmakingTestScreen — background theme selector', () {
+    testWidgets('renders all four theme chips', (tester) async {
+      final fake = _FakeMatchmakingNotifier();
+      await tester.pumpWidget(_pump(fake: fake));
+
+      expect(find.byKey(const Key('theme_chip_kao_tapu')), findsOneWidget);
+      expect(
+        find.byKey(const Key('theme_chip_red_lotus_lake')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('theme_chip_sea_of_cloud')), findsOneWidget);
+      expect(find.byKey(const Key('theme_chip_lumphini_park')), findsOneWidget);
+    });
+
+    testWidgets('tapping a chip calls setBackgroundTheme with its id', (
+      tester,
+    ) async {
+      final fake = _FakeMatchmakingNotifier();
+      await tester.pumpWidget(_pump(fake: fake));
+
+      await tester.tap(find.byKey(const Key('theme_chip_kao_tapu')));
+      await tester.pump();
+
+      expect(fake.setBackgroundThemeCalls, 1);
+      expect(fake.lastBackgroundTheme, 'kao_tapu');
+    });
+
+    testWidgets(
+      'tapping the active chip deselects it (calls setBackgroundTheme(null))',
+      (tester) async {
+        final fake = _FakeMatchmakingNotifier(
+          initial: const MatchmakingState(backgroundTheme: 'red_lotus_lake'),
+        );
+        await tester.pumpWidget(_pump(fake: fake));
+
+        await tester.tap(find.byKey(const Key('theme_chip_red_lotus_lake')));
+        await tester.pump();
+
+        expect(fake.setBackgroundThemeCalls, 1);
+        expect(fake.lastBackgroundTheme, isNull);
+      },
+    );
+
+    testWidgets('chips are disabled when matchmaking is in progress', (
+      tester,
+    ) async {
+      final fake = _FakeMatchmakingNotifier(
+        initial: const MatchmakingState(status: MatchmakingStatus.waiting1v1),
+      );
+      await tester.pumpWidget(_pump(fake: fake));
+
+      await tester.tap(find.byKey(const Key('theme_chip_kao_tapu')));
+      await tester.pump();
+
+      expect(fake.setBackgroundThemeCalls, 0);
+    });
+
+    testWidgets('chips are disabled when matched', (tester) async {
+      final fake = _FakeMatchmakingNotifier(
+        initial: MatchmakingState(
+          status: MatchmakingStatus.matched,
+          roomId: 'Ab3Kz',
+          currentRoom: _makeRoom(),
+        ),
+      );
+      await tester.pumpWidget(_pump(fake: fake));
+
+      await tester.tap(find.byKey(const Key('theme_chip_sea_of_cloud')));
+      await tester.pump();
+
+      expect(fake.setBackgroundThemeCalls, 0);
+    });
+
+    testWidgets('selected chip is shown as selected in debug panel', (
+      tester,
+    ) async {
+      final fake = _FakeMatchmakingNotifier(
+        initial: const MatchmakingState(backgroundTheme: 'lumphini_park'),
+      );
+      await tester.pumpWidget(_pump(fake: fake));
+
+      expect(find.textContaining('lumphini_park'), findsWidgets);
     });
   });
 }

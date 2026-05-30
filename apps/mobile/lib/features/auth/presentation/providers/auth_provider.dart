@@ -89,7 +89,22 @@ class AuthNotifier extends Notifier<AuthState> {
       );
     });
     ref.onDispose(() => _sub?.cancel());
+    _checkTokenOnStartup();
     return const AuthState();
+  }
+
+  void _checkTokenOnStartup() {
+    Future(() async {
+      if (state.user == null) return;
+      try {
+        await ref.read(authRepositoryProvider).validateToken();
+      } catch (_) {
+        await signOut();
+        state = state.copyWith(
+          error: 'Your session has expired. Please sign in again.',
+        );
+      }
+    });
   }
 
   Future<void> signInAnonymously() async {
@@ -113,9 +128,11 @@ class AuthNotifier extends Notifier<AuthState> {
       final user = await ref.read(_signInWithGoogleProvider)();
       state = state.copyWith(status: AuthStatus.authenticated, user: user);
     } catch (e) {
+      final msg = e.toString().replaceFirst('Exception: ', '');
+      // Empty message = user dismissed the popup (not an error — clear spinner silently).
       state = state.copyWith(
         status: AuthStatus.unauthenticated,
-        error: e.toString().replaceFirst('Exception: ', ''),
+        error: msg.isEmpty ? null : msg,
       );
     }
   }

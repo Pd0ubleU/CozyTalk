@@ -1,3 +1,4 @@
+import 'package:mobile/features/admin/domain/entities/admin_blocked_entry.dart';
 import 'package:mobile/features/admin/domain/entities/admin_dashboard_stats.dart';
 import 'package:mobile/features/admin/domain/entities/admin_report.dart';
 import 'package:mobile/features/admin/domain/entities/admin_user.dart';
@@ -91,5 +92,11 @@ class FakeAdminRepository implements AdminRepository {
     unbanUserCount++;
     lastUid = uid;
     if (error != null) throw error!;
+  }
+
+  @override
+  Future<List<AdminBlockedEntry>> getBlockedUsers(String uid) async {
+    if (error != null) throw error!;
+    return [];
   }
 }

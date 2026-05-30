@@ -57,6 +57,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   labelText: 'Password',
                   border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
+                    tooltip: 'Toggle password visibility',
                     icon: Icon(
                       _obscurePassword
                           ? Icons.visibility_off

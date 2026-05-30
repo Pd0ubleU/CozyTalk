@@ -94,10 +94,42 @@ if ! $USE_PROD; then
   fi
 fi
 
+# ── Load .env from apps/mobile ────────────────────────────────────────────────
+ENV_FILE="$ROOT_DIR/apps/mobile/.env"
+ENV_EXAMPLE="$ROOT_DIR/apps/mobile/.env.example"
+
+if [[ ! -f "$ENV_FILE" ]]; then
+  if [[ -f "$ENV_EXAMPLE" ]]; then
+    cp "$ENV_EXAMPLE" "$ENV_FILE"
+    warn "apps/mobile/.env not found — created from .env.example"
+    info "Open ${BOLD}apps/mobile/.env${RESET} and set your ${BOLD}GIPHY_API_KEY${RESET}, then re-run."
+    printf "\n"
+  fi
+fi
+
+if [[ -f "$ENV_FILE" ]]; then
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ "$line" =~ ^\s*# ]] && continue
+    [[ "$line" =~ ^\s*$ ]] && continue
+    if [[ "$line" =~ ^([A-Z_]+)=(.*)$ ]]; then
+      k="${BASH_REMATCH[1]}"
+      v="${BASH_REMATCH[2]}"
+      [[ -z "${!k:-}" ]] && export "$k=$v"
+    fi
+  done < "$ENV_FILE"
+fi
+
+if [[ -z "${GIPHY_API_KEY:-}" ]]; then
+  warn "GIPHY_API_KEY is not set — GIF picker will be disabled."
+  info "Get a key at ${BOLD}https://developers.giphy.com/${RESET} and add it to ${BOLD}apps/mobile/.env${RESET}"
+  printf "\n"
+fi
+
 # ── Build Flutter args ────────────────────────────────────────────────────────
 FLUTTER_ARGS=()
 $USE_WEB  && FLUTTER_ARGS+=("-d" "chrome")
 $USE_PROD && FLUTTER_ARGS+=("--dart-define=USE_EMULATOR=false")
+[[ -n "${GIPHY_API_KEY:-}" ]] && FLUTTER_ARGS+=("--dart-define=GIPHY_API_KEY=$GIPHY_API_KEY")
 
 # ── Emulator startup ──────────────────────────────────────────────────────────
 EMULATOR_PID=""

@@ -315,5 +315,24 @@ void main() {
       await tester.pump();
       expect(find.text('Offline'), findsOneWidget);
     });
+
+    group('accessibility', () {
+      testWidgets('interactive elements have semantic labels', (tester) async {
+        final handle = tester.ensureSemantics();
+        try {
+          final fake = _FakeProfileNotifier(
+            initial: const ProfileState(
+              profile: ProfileUser(uid: 'test-uid', interest: 'music'),
+            ),
+          );
+          await tester.pumpWidget(_buildScreen(fake));
+          await tester.pumpAndSettle();
+          expect(find.bySemanticsLabel('Go back'), findsOneWidget);
+          expect(find.bySemanticsLabel('Clear'), findsOneWidget);
+        } finally {
+          handle.dispose();
+        }
+      });
+    });
   });
 }

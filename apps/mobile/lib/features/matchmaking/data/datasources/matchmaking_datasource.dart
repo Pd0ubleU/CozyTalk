@@ -9,13 +9,14 @@ import '../models/room_model.dart';
 abstract class MatchmakingDatasource {
   Future<({String roomId, bool isNewRoom})> joinGroupRoom({
     String? interestText,
+    String? backgroundTheme,
   });
-  Future<String> createCustomRoom();
+  Future<String> createCustomRoom({String? backgroundTheme});
   Future<({String roomId, RoomMode mode, RoomType roomType})> joinRoomById(
     String roomId,
   );
   Future<void> leaveRoom(String roomId);
-  Future<void> join1v1Pool({String? interestText});
+  Future<void> join1v1Pool({String? interestText, String? backgroundTheme});
   Future<bool> cancel1v1Pool();
   Future<void> setRoomLock({required String roomId, required bool isLocked});
   Stream<RoomModel?> watchRoom(String roomId);
@@ -45,10 +46,12 @@ class MatchmakingDatasourceImpl implements MatchmakingDatasource {
   @override
   Future<({String roomId, bool isNewRoom})> joinGroupRoom({
     String? interestText,
+    String? backgroundTheme,
   }) async {
     final result = await _functions.httpsCallable('joinGroupRoom').call({
       if (interestText != null && interestText.isNotEmpty)
         'interestText': interestText,
+      if (backgroundTheme != null) 'backgroundTheme': backgroundTheme,
     });
     final data = Map<String, dynamic>.from(result.data as Map);
     final roomId = data['roomId'] as String;
@@ -57,8 +60,10 @@ class MatchmakingDatasourceImpl implements MatchmakingDatasource {
   }
 
   @override
-  Future<String> createCustomRoom() async {
-    final result = await _functions.httpsCallable('createCustomRoom').call({});
+  Future<String> createCustomRoom({String? backgroundTheme}) async {
+    final result = await _functions.httpsCallable('createCustomRoom').call({
+      if (backgroundTheme != null) 'backgroundTheme': backgroundTheme,
+    });
     final data = Map<String, dynamic>.from(result.data as Map);
     final roomId = data['roomId'] as String;
     await _registerDisconnect(roomId);
@@ -90,10 +95,14 @@ class MatchmakingDatasourceImpl implements MatchmakingDatasource {
   }
 
   @override
-  Future<void> join1v1Pool({String? interestText}) async {
+  Future<void> join1v1Pool({
+    String? interestText,
+    String? backgroundTheme,
+  }) async {
     await _functions.httpsCallable('join1v1Pool').call({
       if (interestText != null && interestText.isNotEmpty)
         'interestText': interestText,
+      if (backgroundTheme != null) 'backgroundTheme': backgroundTheme,
     });
     // Write RTDB pool presence so onDisconnect auto-removes the waiting_pool entry
     // when the browser closes without pressing Cancel.

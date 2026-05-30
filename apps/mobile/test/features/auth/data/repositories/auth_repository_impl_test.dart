@@ -64,6 +64,9 @@ class _FakeAuthDatasource implements AuthDatasource {
     signOutCount++;
     if (error != null) throw error!;
   }
+
+  @override
+  Future<void> validateToken() async {}
 }
 
 const _model = AuthUserModel(

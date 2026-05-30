@@ -81,5 +81,18 @@ void main() {
       await _pump(tester, friend: _blockedFriend);
       expect(find.text('Offline'), findsOneWidget);
     });
+
+    group('accessibility', () {
+      testWidgets('interactive elements have semantic labels', (tester) async {
+        final handle = tester.ensureSemantics();
+        try {
+          await _pump(tester);
+          expect(find.bySemanticsLabel('Send message'), findsOneWidget);
+          expect(find.bySemanticsLabel('Go back'), findsOneWidget);
+        } finally {
+          handle.dispose();
+        }
+      });
+    });
   });
 }

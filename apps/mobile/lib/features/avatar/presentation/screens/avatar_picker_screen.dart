@@ -143,11 +143,14 @@ class _AvatarPickerScreenState extends ConsumerState<AvatarPickerScreen> {
                 const SizedBox(height: 24),
 
                 // ── Hat section ─────────────────────────────────────────
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
                     'Hat',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -170,11 +173,14 @@ class _AvatarPickerScreenState extends ConsumerState<AvatarPickerScreen> {
                 const SizedBox(height: 24),
 
                 // ── Mood section ────────────────────────────────────────
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
                     'Mood',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -292,14 +298,17 @@ class _NoneTile extends StatelessWidget {
               width: isSelected ? 2.5 : 1.5,
             ),
           ),
-          child: const Column(
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.block, size: 28, color: Colors.grey),
-              SizedBox(height: 6),
+              const Icon(Icons.block, size: 28, color: Colors.grey),
+              const SizedBox(height: 6),
               Text(
                 'None',
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),

@@ -77,8 +77,8 @@ npm install && npm run build && npm test   # npm test requires emulators first
 .\dev.ps1 [...]                           # Windows
 ```
 
-Jest: 93 unit (matchmaking 60, embeddingService 21, chat 12). The 7 Vertex AI integration tests run separately via `jest.integration.config.js` — excluded from `npm test`.
-Flutter: 936 unit + widget tests.
+Jest: 172 unit (matchmaking 82, admin 32, embeddingService 21, block 20, chat 12, friends 5). The 7 Vertex AI integration tests run separately via `jest.integration.config.js` — excluded from `npm test`.
+Flutter: 1115 unit + widget tests.
 
 ---
 
@@ -93,6 +93,7 @@ Flutter: 936 unit + widget tests.
 | `profile` | `profileNotifierProvider` | `successField`: 'username'\|'interest'\|'thoughts' | Complete |
 | `avatar` | `avatarDecorationNotifierProvider` | `AvatarDecorationStatus`: idle\|loading\|saving\|error | Complete |
 | `home` | — | Thin nav hub, no domain/data | Complete |
+| `block` | `blockNotifierProvider` | `BlockStatus`: idle\|loading\|loaded\|error | Complete |
 | `friends` | `friendsNotifierProvider` · `friendChatNotifierProvider` | `FriendsState`: allUsers\|friends\|incomingRequests · `FriendChatState`: messages\|chatRoomId | Prototype (dev screens only) |
 | `card_shuffle` | `cardShuffleNotifierProvider` | `CardShuffleState`: currentQuestion?, isLoading, error? | Prototype (icebreaker panel in chat dev screen) |
 | `word_filter` | `censorTextProvider` | Stateless service — no Notifier | Complete · gates on `content_filtering_enabled` Remote Config flag |
@@ -147,7 +148,11 @@ RTDB paths: `rooms/{id}/members/{uid}`, `typing/{id}/{uid}`, `presence/{id}/{uid
 - `false` (default) → chatroom/backend testing: `_AuthRouter` → `LoginScreen` (features/auth) → `HelloScreen`. Registers `findingRoom` route.
 - `true` → production UI: `HomeScreen` (screens/) + `AppRoutes` named routes including `findingRoom`.
 
+`_MainUIAuthRouter` routes: `authenticated + @cozytalk.com email → AdminConsoleScreen` · `authenticated (other) → HomeScreen` · `idle → spinner` · others → `LoginScreen`.
+
 `_AuthRouter` routes: `authenticated → HelloScreen` · `idle → spinner` · others → `LoginScreen`.
+
+`_MainUIAuthRouter` routes (when `_useMainUI = true`): `authenticated + @cozytalk.com email → AdminConsoleScreen` · `authenticated + other email → HomeScreen` · `idle → spinner` · others → `ui.LoginScreen`.
 
 ---
 

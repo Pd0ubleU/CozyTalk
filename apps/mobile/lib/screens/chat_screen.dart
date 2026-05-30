@@ -3,6 +3,12 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../features/auth/presentation/providers/auth_provider.dart';
+import '../features/chat/domain/entities/chat_message.dart' as chat_entity;
+import '../features/chat/domain/entities/session_status.dart';
+import '../features/chat/presentation/providers/chat_provider.dart';
+import '../features/matchmaking/domain/entities/matchmaking_status.dart';
+import '../features/matchmaking/presentation/providers/matchmaking_provider.dart';
 import '../theme/app_colors.dart';
 import '../dialogs/leave_room_dialog.dart';
 import '../dialogs/song_dialog.dart';
@@ -30,16 +36,10 @@ const _cardAssets = [
 
 String _pickCard() => _cardAssets[Random().nextInt(_cardAssets.length)];
 
-String _nowTime() {
-  final t = TimeOfDay.fromDateTime(DateTime.now());
-  final h = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
-  final m = t.minute.toString().padLeft(2, '0');
-  return '$h:$m ${t.period.name}';
-}
-
 // ── Message model ──────────────────────────────────────────────────────────
 class ChatMessage {
-  final String type; // 'warning' | 'system' | 'me' | 'other' | 'card' | 'gif'
+  final String
+  type; // 'warning' | 'system' | 'me' | 'other' | 'card' | 'gif' | 'gif_other'
   final String text; // for 'card' = asset image path
   final String? time;
   ChatMessage({required this.type, required this.text, this.time});
@@ -58,7 +58,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   final TextEditingController _msgController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
-  bool _isOtherTyping = false;
   final bool _isBlocked = false;
   Timer? _typingTimer;
   Timer? _friendMsgTimer;
@@ -71,17 +70,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   String friendMood = 'I love TikTok very much.';
   bool _friendRequestSent = false;
   bool _friendAccepted = false;
-
-  final List<ChatMessage> messages = [
-    ChatMessage(
-      type: 'warning',
-      text:
-          'Keep it friendly! Please be respectful and protect your personal info.\nReport any suspicious behavior to help keep our community safe.',
-    ),
-    ChatMessage(type: 'system', text: 'Kaitom Hop in', time: '27 April 2026'),
-    ChatMessage(type: 'other', text: 'Hello.', time: '10:00 pm'),
-    ChatMessage(type: 'me', text: 'Hello 🍪🙏🔥😣', time: '10:00 pm'),
-  ];
+  final List<({ChatMessage msg, int seq})> _localMessages = [];
+  final List<ChatMessage> _optimisticMessages = [];
+  String? _pendingGifUrl;
 
   @override
   void initState() {
@@ -94,7 +85,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       begin: const Offset(0, -1),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _songCtrl, curve: Curves.easeOutCubic));
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom();
+      final matchState = ref.read(matchmakingNotifierProvider);
+      final authUser = ref.read(authNotifierProvider).user;
+      final roomId = matchState.roomId;
+      if (authUser == null || roomId == null) return;
+      ref
+          .read(chatNotifierProvider.notifier)
+          .enterSession(
+            sessionId: roomId,
+            currentUserId: authUser.uid,
+            currentUserDisplayName: authUser.displayName,
+          );
+    });
     // Mock: friend sends a message after 3 seconds
     _friendMsgTimer = Timer(const Duration(seconds: 3), () {
       if (!mounted) return;
@@ -150,39 +154,47 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     });
   }
 
-  void _sendMessage() {
-    if (_msgController.text.trim().isEmpty) return;
-    setState(() {
-      messages.add(
-        ChatMessage(
-          type: 'me',
-          text: _msgController.text.trim(),
-          time: _nowTime(),
-        ),
-      );
-      _isOtherTyping = true;
-    });
-    _msgController.clear();
-    _focusNode.requestFocus();
-    _scrollToBottom();
-    _typingTimer?.cancel();
-    _typingTimer = Timer(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _isOtherTyping = false);
-    });
+  Future<void> _sendMessage() async {
+    if (ref.read(chatNotifierProvider).isSending) return;
+    final notifier = ref.read(chatNotifierProvider.notifier);
+    bool sent = false;
+    if (_pendingGifUrl != null) {
+      final url = _pendingGifUrl!;
+      setState(() {
+        _pendingGifUrl = null;
+        _optimisticMessages.add(ChatMessage(type: 'gif', text: url));
+      });
+      await notifier.sendMessage(url);
+      sent = true;
+    }
+    final text = _msgController.text.trim();
+    if (text.isNotEmpty) {
+      setState(() {
+        _optimisticMessages.add(ChatMessage(type: 'me', text: text));
+      });
+      notifier.sendMessage(text);
+      notifier.setTyping(false);
+      _typingTimer?.cancel();
+      _msgController.clear();
+      _focusNode.requestFocus();
+      sent = true;
+    }
+    if (sent) _scrollToBottom();
   }
 
   void _sendTopicCard() {
+    final seq = ref.read(chatNotifierProvider).messages.length;
     setState(() {
-      messages.add(ChatMessage(type: 'card', text: _pickCard()));
+      _localMessages.add((
+        msg: ChatMessage(type: 'card', text: _pickCard()),
+        seq: seq,
+      ));
     });
     _scrollToBottom();
   }
 
-  void _sendGif(String label) {
-    setState(() {
-      messages.add(ChatMessage(type: 'gif', text: label, time: _nowTime()));
-    });
-    _scrollToBottom();
+  void _sendGif(String url) {
+    setState(() => _pendingGifUrl = url);
   }
 
   void _sendFriendRequest([String name = 'kaitom']) {
@@ -236,17 +248,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 
   void _shuffleTopic() {
+    final seq = ref.read(chatNotifierProvider).messages.length;
     setState(() {
-      messages.add(
-        ChatMessage(type: 'system', text: 'Kaitom, shuffle the topics!'),
-      );
-      messages.add(ChatMessage(type: 'card', text: _pickCard()));
+      _localMessages.add((
+        msg: ChatMessage(type: 'system', text: 'Someone shuffled the topic!'),
+        seq: seq,
+      ));
+      _localMessages.add((
+        msg: ChatMessage(type: 'card', text: _pickCard()),
+        seq: seq,
+      ));
     });
     _scrollToBottom();
   }
 
   void _onWillPop() {
-    showDialog(context: context, builder: (_) => const LeaveRoomDialog());
+    final notifier = ref.read(chatNotifierProvider.notifier);
+    showDialog(
+      context: context,
+      builder: (_) => LeaveRoomDialog(onLeave: () => notifier.endSession()),
+    );
   }
 
   void _showLeaveForFriendChat() {
@@ -361,6 +382,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     );
   }
 
+  static const _kWarning =
+      'Keep it friendly! Please be respectful and protect your personal info.\n'
+      'Report any suspicious behavior to help keep our community safe.';
+
+  static String _formatTime(DateTime t) {
+    final tod = TimeOfDay.fromDateTime(t);
+    final h = tod.hourOfPeriod == 0 ? 12 : tod.hourOfPeriod;
+    final m = tod.minute.toString().padLeft(2, '0');
+    return '$h:$m ${tod.period.name}';
+  }
+
+  ChatMessage _toDisplay(chat_entity.ChatMessage msg, String? myUid) {
+    final isMe = msg.senderId == myUid;
+    final isGif = msg.text.contains('giphy.com');
+    return ChatMessage(
+      type: isGif ? (isMe ? 'gif' : 'gif_other') : (isMe ? 'me' : 'other'),
+      text: msg.text,
+      time: _formatTime(msg.timestamp),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final args =
@@ -374,9 +416,39 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
     final avatarState = ref.watch(avatarProvider);
     final userProfile = ref.watch(userProfileProvider);
+    final chatState = ref.watch(chatNotifierProvider);
     final myMood = userProfile.thought.isNotEmpty
         ? userProfile.thought
         : 'Care to share?';
+
+    ref.listen(chatNotifierProvider.select((s) => s.status), (_, next) {
+      if (next == SessionStatus.disconnected) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    });
+
+    ref.listen(matchmakingNotifierProvider.select((s) => s.status), (
+      prev,
+      next,
+    ) {
+      if (prev == MatchmakingStatus.matched &&
+          next != MatchmakingStatus.matched &&
+          ref.read(chatNotifierProvider).status == SessionStatus.chatting) {
+        ref.read(chatNotifierProvider.notifier).forceDisconnect();
+      }
+    });
+
+    ref.listen(chatNotifierProvider.select((s) => s.messages.length), (
+      prev,
+      next,
+    ) {
+      if ((prev ?? 0) < next) {
+        if (_optimisticMessages.isNotEmpty) {
+          setState(() => _optimisticMessages.clear());
+        }
+        _scrollToBottom();
+      }
+    });
 
     return PopScope(
       canPop: false,
@@ -404,7 +476,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                         Expanded(
                           child: Stack(
                             children: [
-                              _buildMessageList(avatarState),
+                              _buildMessageList(avatarState, chatState),
                               Positioned(
                                 top: 0,
                                 left: 0,
@@ -433,10 +505,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                     ),
                     // Barrier
                     if (_songPanelOpen)
-                      GestureDetector(
-                        onTap: _closeSongPanel,
-                        behavior: HitTestBehavior.opaque,
-                        child: Container(color: Colors.black26),
+                      ExcludeSemantics(
+                        child: GestureDetector(
+                          onTap: _closeSongPanel,
+                          behavior: HitTestBehavior.opaque,
+                          child: Container(color: Colors.black26),
+                        ),
                       ),
                     // Slide-down song panel
                     Positioned(
@@ -475,12 +549,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                _headerBtn(
-                  onTap: _onWillPop,
-                  child: SvgPicture.asset(
-                    'assets/images/icons/Back.svg',
-                    width: 24,
-                    height: 24,
+                Semantics(
+                  label: 'End chat',
+                  button: true,
+                  child: _headerBtn(
+                    onTap: _onWillPop,
+                    child: SvgPicture.asset(
+                      'assets/images/icons/Back.svg',
+                      width: 24,
+                      height: 24,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -491,7 +569,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                     children: [
                       Text(
                         roomName,
-                        style: const TextStyle(
+                        style: Theme.of(context).textTheme.titleLarge!.copyWith(
                           color: Colors.white,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -499,7 +577,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       ),
                       Text(
                         'Room ID:   $roomId',
-                        style: const TextStyle(
+                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
                           color: Colors.white70,
                           fontSize: 12,
                         ),
@@ -641,7 +719,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             const SizedBox(height: 2),
             Text(
               label,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -650,24 +731,41 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 
   // ── Message list ──────────────────────────────────────────────────────────
-  Widget _buildMessageList(AvatarState avatarState) {
-    final itemCount = messages.length + (_isOtherTyping ? 1 : 0);
+  Widget _buildMessageList(AvatarState avatarState, ChatState chatState) {
+    final backendMsgs = chatState.messages
+        .map((m) => _toDisplay(m, chatState.currentUserId))
+        .toList();
+    final merged = <ChatMessage>[ChatMessage(type: 'warning', text: _kWarning)];
+    int localIdx = 0;
+    for (int i = 0; i <= backendMsgs.length; i++) {
+      while (localIdx < _localMessages.length &&
+          _localMessages[localIdx].seq <= i) {
+        merged.add(_localMessages[localIdx].msg);
+        localIdx++;
+      }
+      if (i < backendMsgs.length) merged.add(backendMsgs[i]);
+    }
+    final displayMessages = [...merged, ..._optimisticMessages];
+    final isTyping = chatState.typingUsers.isNotEmpty;
+    final itemCount = displayMessages.length + (isTyping ? 1 : 0);
+
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       itemCount: itemCount,
       itemBuilder: (context, i) {
-        if (i == messages.length && _isOtherTyping) {
+        if (i == displayMessages.length && isTyping) {
           return const _TypingIndicator();
         }
-        final msg = messages[i];
+        final msg = displayMessages[i];
         return switch (msg.type) {
           'warning' => _buildWarning(msg.text),
           'system' => _buildSystem(msg),
           'me' => _buildBubble(msg, isMe: true, avatarState: avatarState),
           'other' => _buildBubble(msg, isMe: false),
           'card' => _buildCard(msg.text),
-          'gif' => _buildGifBubble(msg, avatarState: avatarState),
+          'gif' => _buildGifBubble(msg, isMe: true, avatarState: avatarState),
+          'gif_other' => _buildGifBubble(msg, isMe: false),
           _ => const SizedBox.shrink(),
         };
       },
@@ -686,8 +784,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       child: Text(
         text,
         textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: Color(0xFF836151),
+        style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+          color: const Color(0xFF836151),
           fontSize: 13,
           fontWeight: FontWeight.w500,
         ),
@@ -702,7 +800,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           const SizedBox(height: 8),
           Text(
             msg.time!,
-            style: const TextStyle(fontSize: 12, color: Colors.black45),
+            style: Theme.of(context).textTheme.bodySmall!.copyWith(
+              fontSize: 12,
+              color: Colors.black.withValues(alpha: 0.60),
+            ),
           ),
           const SizedBox(height: 6),
         ],
@@ -716,7 +817,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           ),
           child: Text(
             msg.text,
-            style: const TextStyle(fontSize: 12, color: Colors.black54),
+            style: Theme.of(context).textTheme.bodySmall!.copyWith(
+              fontSize: 12,
+              color: Colors.black54,
+            ),
           ),
         ),
         const SizedBox(height: 8),
@@ -739,24 +843,31 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe) ...[
-            GestureDetector(
-              onTap: () => showDialog(
-                context: context,
-                builder: (_) => UserProfileDialog(
-                  username: 'kaitom',
-                  initialAdded: _friendRequestSent,
-                  onAddFriend: () => _sendFriendRequest(),
-                  onCancelRequest: () => _cancelFriendRequest(),
+            Semantics(
+              label: 'View user profile',
+              button: true,
+              child: GestureDetector(
+                onTap: () => showDialog(
+                  context: context,
+                  builder: (_) => UserProfileDialog(
+                    username: 'kaitom',
+                    initialAdded: _friendRequestSent,
+                    onAddFriend: () => _sendFriendRequest(),
+                    onCancelRequest: () => _cancelFriendRequest(),
+                  ),
                 ),
+                child: LayeredAvatar(boxSize: 40),
               ),
-              child: LayeredAvatar(boxSize: 40),
             ),
             const SizedBox(width: 8),
           ],
           if (isMe) ...[
             Text(
               msg.time ?? '',
-              style: const TextStyle(fontSize: 10, color: Colors.black45),
+              style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                fontSize: 10,
+                color: Colors.black.withValues(alpha: 0.60),
+              ),
             ),
             const SizedBox(width: 6),
           ],
@@ -770,14 +881,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             ),
             child: Text(
               msg.text,
-              style: const TextStyle(fontSize: 15, height: 1.6),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge!.copyWith(fontSize: 15, height: 1.6),
             ),
           ),
           if (!isMe) ...[
             const SizedBox(width: 6),
             Text(
               msg.time ?? '',
-              style: const TextStyle(fontSize: 10, color: Colors.black45),
+              style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                fontSize: 10,
+                color: Colors.black.withValues(alpha: 0.60),
+              ),
             ),
           ],
           if (isMe) ...[
@@ -797,66 +913,85 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     return _TopicCard(assetPath: assetPath, onShuffle: _shuffleTopic);
   }
 
-  Widget _buildGifBubble(ChatMessage msg, {AvatarState? avatarState}) {
+  Widget _buildGifBubble(
+    ChatMessage msg, {
+    required bool isMe,
+    AvatarState? avatarState,
+  }) {
     final maxW = MediaQuery.of(context).size.width * 0.55;
+    final gifWidget = Container(
+      constraints: BoxConstraints(maxWidth: maxW),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isMe ? const Color(0xFFF1CEE4) : const Color(0xFFDCEBCE),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(
+          msg.text,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => const Padding(
+            padding: EdgeInsets.all(8),
+            child: Text(
+              'GIF',
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+                color: Color(0xFF4A3228),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final timestamp = Text(
+      msg.time ?? '',
+      style: Theme.of(context).textTheme.labelSmall!.copyWith(
+        fontSize: 10,
+        color: Colors.black.withValues(alpha: 0.60),
+      ),
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisAlignment: isMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Text(
-            msg.time ?? '',
-            style: const TextStyle(fontSize: 10, color: Colors.black45),
-          ),
-          const SizedBox(width: 6),
-          Container(
-            constraints: BoxConstraints(maxWidth: maxW),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1CEE4),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  msg.text,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
-                    color: Color(0xFF4A3228),
+          if (!isMe) ...[
+            Semantics(
+              label: 'View user profile',
+              button: true,
+              child: GestureDetector(
+                onTap: () => showDialog(
+                  context: context,
+                  builder: (_) => UserProfileDialog(
+                    username: 'kaitom',
+                    initialAdded: _friendRequestSent,
+                    onAddFriend: () => _sendFriendRequest(),
+                    onCancelRequest: () => _cancelFriendRequest(),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.yellowWarm,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text(
-                    'GIF',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF4A3228),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-              ],
+                child: LayeredAvatar(boxSize: 40),
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          LayeredAvatar(
-            boxSize: 40,
-            moodOverlay: avatarState?.mood,
-            accessoryOverlay: avatarState?.accessory,
-          ),
+            const SizedBox(width: 8),
+            gifWidget,
+            const SizedBox(width: 6),
+            timestamp,
+          ] else ...[
+            timestamp,
+            const SizedBox(width: 6),
+            gifWidget,
+            const SizedBox(width: 8),
+            LayeredAvatar(
+              boxSize: 40,
+              moodOverlay: avatarState?.mood,
+              accessoryOverlay: avatarState?.accessory,
+            ),
+          ],
         ],
       ),
     );
@@ -886,8 +1021,66 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     );
   }
 
+  // ── GIF preview strip ─────────────────────────────────────────────────────
+  Widget _buildGifPreview() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      color: const Color(0xFF6B5E5B),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              _pendingGifUrl!,
+              width: 80,
+              height: 60,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Container(
+                width: 80,
+                height: 60,
+                color: Colors.white12,
+                alignment: Alignment.center,
+                child: const Text(
+                  'GIF',
+                  style: TextStyle(color: Colors.white54),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            'GIF ready to send',
+            style: Theme.of(context).textTheme.bodySmall!.copyWith(
+              color: Colors.white70,
+              fontSize: 12,
+            ),
+          ),
+          const Spacer(),
+          Semantics(
+            label: 'Close GIF preview',
+            button: true,
+            child: GestureDetector(
+              onTap: () => setState(() => _pendingGifUrl = null),
+              child: const Icon(Icons.close, color: Colors.white54, size: 20),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── Input bar ─────────────────────────────────────────────────────────────
   Widget _buildInputBar() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_pendingGifUrl != null) _buildGifPreview(),
+        _buildInputRow(),
+      ],
+    );
+  }
+
+  Widget _buildInputRow() {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
       color: const Color(0xFF6B5E5B),
@@ -904,12 +1097,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                 maxLines: 5,
                 keyboardType: TextInputType.multiline,
                 textInputAction: TextInputAction.newline,
-                style: const TextStyle(fontSize: 15),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge!.copyWith(fontSize: 15),
                 strutStyle: const StrutStyle(
                   fontSize: 15,
                   height: 1.6,
                   forceStrutHeight: true,
                 ),
+                onChanged: (text) {
+                  _typingTimer?.cancel();
+                  final notifier = ref.read(chatNotifierProvider.notifier);
+                  if (text.isNotEmpty) {
+                    notifier.setTyping(true);
+                    _typingTimer = Timer(const Duration(seconds: 3), () {
+                      notifier.setTyping(false);
+                    });
+                  } else {
+                    notifier.setTyping(false);
+                  }
+                },
                 decoration: InputDecoration(
                   hintText: 'Type here ...',
                   hintStyle: const TextStyle(color: Colors.black38),
@@ -960,20 +1167,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             ),
           ),
           const SizedBox(width: 10),
-          GestureDetector(
-            onTap: _sendMessage,
-            child: Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEAC163),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              alignment: Alignment.center,
-              child: SvgPicture.asset(
-                'assets/images/icons/sent.svg',
-                width: 24,
-                height: 24,
+          Semantics(
+            label: 'Send message',
+            button: true,
+            child: GestureDetector(
+              onTap: _sendMessage,
+              child: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAC163),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                alignment: Alignment.center,
+                child: SvgPicture.asset(
+                  'assets/images/icons/sent.svg',
+                  width: 24,
+                  height: 24,
+                ),
               ),
             ),
           ),
@@ -1218,21 +1429,25 @@ class _StaticAvatar extends StatelessWidget {
             bottom: 0,
             left: 0,
             right: 0,
-            child: GestureDetector(
-              onTap: () => showDialog(
-                context: context,
-                builder: (_) => UserProfileDialog(
-                  username: username,
-                  isMe: isMe,
-                  initialAdded: !isMe && friendRequestSent,
-                  onAddFriend: isMe ? null : onFriendRequest,
-                  onCancelRequest: isMe ? null : onCancelRequest,
+            child: Semantics(
+              label: 'View user profile',
+              button: true,
+              child: GestureDetector(
+                onTap: () => showDialog(
+                  context: context,
+                  builder: (_) => UserProfileDialog(
+                    username: username,
+                    isMe: isMe,
+                    initialAdded: !isMe && friendRequestSent,
+                    onAddFriend: isMe ? null : onFriendRequest,
+                    onCancelRequest: isMe ? null : onCancelRequest,
+                  ),
                 ),
-              ),
-              child: LayeredAvatar(
-                boxSize: 90 * s,
-                moodOverlay: isMe ? avatarState?.mood : null,
-                accessoryOverlay: isMe ? avatarState?.accessory : null,
+                child: LayeredAvatar(
+                  boxSize: 90 * s,
+                  moodOverlay: isMe ? avatarState?.mood : null,
+                  accessoryOverlay: isMe ? avatarState?.accessory : null,
+                ),
               ),
             ),
           ),

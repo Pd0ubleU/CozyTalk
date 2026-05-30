@@ -58,7 +58,7 @@ class AdminBannedCard extends StatelessWidget {
                     children: [
                       Text(
                         banned.name,
-                        style: const TextStyle(
+                        style: Theme.of(context).textTheme.bodyLarge!.copyWith(
                           fontWeight: FontWeight.w800,
                           fontSize: 15,
                           color: AdminC.ink,
@@ -67,7 +67,7 @@ class AdminBannedCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         banned.reason,
-                        style: const TextStyle(
+                        style: Theme.of(context).textTheme.labelSmall!.copyWith(
                           fontSize: 11.5,
                           color: AdminC.inkSoft,
                         ),
@@ -89,8 +89,8 @@ class AdminBannedCard extends StatelessWidget {
                       ),
                       child: Text(
                         banned.duration,
-                        style: const TextStyle(
-                          color: Color(0xFFFFF7E8),
+                        style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                          color: const Color(0xFFFFF7E8),
                           fontSize: 10.5,
                           fontWeight: FontWeight.w800,
                         ),
@@ -99,7 +99,7 @@ class AdminBannedCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       banned.date,
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.labelSmall!.copyWith(
                         fontSize: 10.5,
                         color: AdminC.inkSoft,
                       ),
@@ -116,9 +116,12 @@ class AdminBannedCard extends StatelessWidget {
               child: Text.rich(
                 TextSpan(
                   children: [
-                    const TextSpan(
+                    TextSpan(
                       text: 'by ',
-                      style: TextStyle(fontSize: 11, color: AdminC.inkSoft),
+                      style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                        fontSize: 11,
+                        color: AdminC.inkSoft,
+                      ),
                     ),
                     TextSpan(
                       text: banned.by,
@@ -201,7 +204,10 @@ class AdminBannedTab extends StatelessWidget {
             child: Center(
               child: Text(
                 'No bans match "$query".',
-                style: const TextStyle(color: AdminC.inkSoft, fontSize: 13),
+                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                  color: AdminC.inkSoft,
+                  fontSize: 13,
+                ),
               ),
             ),
           ),

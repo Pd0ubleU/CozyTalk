@@ -19,6 +19,8 @@ class RoomInfo {
 }
 
 class Friend {
+  final String friendshipId;
+  final String chatRoomId;
   final String name;
   final String username;
   String? note;
@@ -31,6 +33,8 @@ class Friend {
   bool isBlocked;
 
   Friend({
+    this.friendshipId = '',
+    this.chatRoomId = '',
     required this.name,
     required this.username,
     this.note,
@@ -44,6 +48,8 @@ class Friend {
   });
 
   Friend copyWith({
+    String? friendshipId,
+    String? chatRoomId,
     String? name,
     String? username,
     Object? note = _sentinel,
@@ -55,6 +61,8 @@ class Friend {
     String? interest,
     bool? isBlocked,
   }) => Friend(
+    friendshipId: friendshipId ?? this.friendshipId,
+    chatRoomId: chatRoomId ?? this.chatRoomId,
     name: name ?? this.name,
     username: username ?? this.username,
     note: note == _sentinel ? this.note : note as String?,

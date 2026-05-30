@@ -405,7 +405,7 @@ class _AdminConfirmDialog extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: Theme.of(context).textTheme.titleLarge!.copyWith(
                 fontWeight: FontWeight.w900,
                 fontSize: 18,
                 color: Colors.black,
@@ -468,7 +468,7 @@ class _AdminConfirmBtn extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: TextStyle(
+          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
             color: fg,
             fontWeight: FontWeight.w700,
             fontSize: 14,
@@ -608,7 +608,7 @@ class AdminToast extends StatelessWidget {
         child: Text(
           msg,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
             color: AdminC.greenInk,
             fontWeight: FontWeight.w800,
             fontSize: 13,
@@ -697,7 +697,7 @@ class _AdminBanModalState extends State<AdminBanModal> {
                     Expanded(
                       child: Text(
                         'Ban ${widget.username}',
-                        style: const TextStyle(
+                        style: Theme.of(context).textTheme.titleLarge!.copyWith(
                           fontWeight: FontWeight.w800,
                           fontSize: 18,
                           color: AdminC.ink,
@@ -752,7 +752,9 @@ class _AdminBanModalState extends State<AdminBanModal> {
   List<Widget> _buildStep1() => [
     Text(
       'Why are you banning this user? Choose one.',
-      style: TextStyle(fontSize: 13, color: AdminC.inkSoft),
+      style: Theme.of(
+        context,
+      ).textTheme.bodyMedium!.copyWith(fontSize: 13, color: AdminC.inkSoft),
     ),
     const SizedBox(height: 12),
     ...kBanReasons.map((r) {
@@ -797,7 +799,7 @@ class _AdminBanModalState extends State<AdminBanModal> {
               Expanded(
                 child: Text(
                   r,
-                  style: const TextStyle(
+                  style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: 13.5,
                     color: AdminC.ink,
@@ -816,7 +818,9 @@ class _AdminBanModalState extends State<AdminBanModal> {
         maxLines: 2,
         decoration: InputDecoration(
           hintText: 'Type the reason…',
-          hintStyle: TextStyle(color: AdminC.inkSoft, fontSize: 13),
+          hintStyle: Theme.of(
+            context,
+          ).textTheme.bodyMedium!.copyWith(color: AdminC.inkSoft, fontSize: 13),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: AdminC.border),
@@ -831,7 +835,9 @@ class _AdminBanModalState extends State<AdminBanModal> {
           ),
           contentPadding: const EdgeInsets.all(10),
         ),
-        style: const TextStyle(fontSize: 13, color: AdminC.ink),
+        style: Theme.of(
+          context,
+        ).textTheme.bodyMedium!.copyWith(fontSize: 13, color: AdminC.ink),
       ),
     const SizedBox(height: 14),
     Row(
@@ -860,7 +866,9 @@ class _AdminBanModalState extends State<AdminBanModal> {
   List<Widget> _buildStep2() => [
     Text(
       'How long should the ban last?',
-      style: TextStyle(fontSize: 13, color: AdminC.inkSoft),
+      style: Theme.of(
+        context,
+      ).textTheme.bodyMedium!.copyWith(fontSize: 13, color: AdminC.inkSoft),
     ),
     const SizedBox(height: 12),
     GridView.count(

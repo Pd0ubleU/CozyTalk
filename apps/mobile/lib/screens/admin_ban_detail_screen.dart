@@ -22,23 +22,27 @@ class AdminBanDetailScreen extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
               children: [
-                _buildSubjectCard(s, hasCurrent),
+                _buildSubjectCard(context, s, hasCurrent),
                 if (hasCurrent) ...[
                   const SizedBox(height: 12),
-                  _sectionLabel('Current ban'),
-                  _buildBanRecord(s.current!, current: true),
+                  _sectionLabel(context, 'Current ban'),
+                  _buildBanRecord(context, s.current!, current: true),
                 ],
                 if (s.previous.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  _sectionLabel('Previous bans (${s.previous.length})'),
+                  _sectionLabel(
+                    context,
+                    'Previous bans (${s.previous.length})',
+                  ),
                   ...s.previous.map(
                     (p) => Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: _buildBanRecord(p, current: false),
+                      child: _buildBanRecord(context, p, current: false),
                     ),
                   ),
                 ],
-                if (!hasCurrent && s.previous.isEmpty) _buildEmptyState(),
+                if (!hasCurrent && s.previous.isEmpty)
+                  _buildEmptyState(context),
               ],
             ),
           ),
@@ -95,7 +99,7 @@ class AdminBanDetailScreen extends StatelessWidget {
             children: [
               Text(
                 hasCurrent ? 'Ban Detail' : 'Ban History',
-                style: const TextStyle(
+                style: Theme.of(context).textTheme.titleLarge!.copyWith(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
                   color: Colors.white,
@@ -106,7 +110,7 @@ class AdminBanDetailScreen extends StatelessWidget {
                 hasCurrent
                     ? 'Banned · ${s.current!.date}'
                     : '${s.previous.length} previous ban${s.previous.length == 1 ? '' : 's'}',
-                style: TextStyle(
+                style: Theme.of(context).textTheme.bodySmall!.copyWith(
                   fontSize: 12,
                   color: Colors.white.withValues(alpha: .75),
                 ),
@@ -118,7 +122,11 @@ class AdminBanDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSubjectCard(AdminBanDetailSubject s, bool hasCurrent) {
+  Widget _buildSubjectCard(
+    BuildContext context,
+    AdminBanDetailSubject s,
+    bool hasCurrent,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -181,7 +189,7 @@ class AdminBanDetailScreen extends StatelessWidget {
                     ),
                     child: Text(
                       'UID: ${s.uid}',
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.labelSmall!.copyWith(
                         fontSize: 10,
                         color: AdminC.ink,
                         fontWeight: FontWeight.w600,
@@ -198,7 +206,7 @@ class AdminBanDetailScreen extends StatelessWidget {
                   children: [
                     Text(
                       hasCurrent ? 'BANNED USER' : 'USER',
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.labelSmall!.copyWith(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         color: AdminC.inkSoft,
@@ -208,16 +216,16 @@ class AdminBanDetailScreen extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       s.name,
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.titleLarge!.copyWith(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
                         color: AdminC.ink,
                       ),
                     ),
                     const SizedBox(height: 10),
-                    const Text(
+                    Text(
                       'Interest',
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                         color: AdminC.ink,
@@ -226,7 +234,7 @@ class AdminBanDetailScreen extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       s.interest.isNotEmpty ? s.interest : '—',
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
                         fontSize: 12,
                         color: AdminC.inkSoft,
                         height: 1.4,
@@ -247,15 +255,17 @@ class AdminBanDetailScreen extends StatelessWidget {
             ),
             child: Row(
               children: [
-                _statCell('${s.reports}', 'Prior reports', null),
+                _statCell(context, '${s.reports}', 'Prior reports', null),
                 Container(width: 1, height: 30, color: AdminC.border),
                 _statCell(
+                  context,
                   s.joined.isNotEmpty ? _accountAge(s.joined) : '—',
                   'Account age',
                   null,
                 ),
                 Container(width: 1, height: 30, color: AdminC.border),
                 _statCell(
+                  context,
                   hasCurrent ? 'Banned' : (s.online ? 'Active' : 'Offline'),
                   'Status',
                   hasCurrent
@@ -270,13 +280,18 @@ class AdminBanDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _statCell(String value, String label, Color? valueColor) {
+  Widget _statCell(
+    BuildContext context,
+    String value,
+    String label,
+    Color? valueColor,
+  ) {
     return Expanded(
       child: Column(
         children: [
           Text(
             value,
-            style: TextStyle(
+            style: Theme.of(context).textTheme.bodyLarge!.copyWith(
               fontSize: 15,
               fontWeight: FontWeight.w800,
               color: valueColor ?? AdminC.ink,
@@ -285,7 +300,10 @@ class AdminBanDetailScreen extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(fontSize: 11, color: AdminC.inkSoft),
+            style: Theme.of(context).textTheme.labelSmall!.copyWith(
+              fontSize: 11,
+              color: AdminC.inkSoft,
+            ),
           ),
         ],
       ),
@@ -321,11 +339,11 @@ class AdminBanDetailScreen extends StatelessWidget {
     return rem > 0 ? '${yrs}y ${rem}m' : '${yrs}y';
   }
 
-  Widget _sectionLabel(String label) => Padding(
+  Widget _sectionLabel(BuildContext context, String label) => Padding(
     padding: const EdgeInsets.fromLTRB(4, 0, 0, 8),
     child: Text(
       label,
-      style: const TextStyle(
+      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
         fontSize: 13,
         fontWeight: FontWeight.w800,
         color: AdminC.ink,
@@ -333,7 +351,11 @@ class AdminBanDetailScreen extends StatelessWidget {
     ),
   );
 
-  Widget _buildBanRecord(AdminBanRecord rec, {required bool current}) {
+  Widget _buildBanRecord(
+    BuildContext context,
+    AdminBanRecord rec, {
+    required bool current,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -365,9 +387,9 @@ class AdminBanDetailScreen extends StatelessWidget {
                     color: AdminC.red,
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: const Text(
+                  child: Text(
                     'CURRENT',
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.labelSmall!.copyWith(
                       color: Colors.white,
                       fontSize: 9.5,
                       fontWeight: FontWeight.w800,
@@ -380,7 +402,7 @@ class AdminBanDetailScreen extends StatelessWidget {
               Expanded(
                 child: Text(
                   rec.reason,
-                  style: const TextStyle(
+                  style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                     color: AdminC.ink,
@@ -396,8 +418,8 @@ class AdminBanDetailScreen extends StatelessWidget {
                 ),
                 child: Text(
                   rec.duration,
-                  style: const TextStyle(
-                    color: Color(0xFFFFF7E8),
+                  style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                    color: const Color(0xFFFFF7E8),
                     fontSize: 10.5,
                     fontWeight: FontWeight.w800,
                   ),
@@ -408,7 +430,10 @@ class AdminBanDetailScreen extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             rec.date,
-            style: const TextStyle(fontSize: 11.5, color: AdminC.inkSoft),
+            style: Theme.of(context).textTheme.labelSmall!.copyWith(
+              fontSize: 11.5,
+              color: AdminC.inkSoft,
+            ),
           ),
           if (rec.note.isNotEmpty) ...[
             const SizedBox(height: 10),
@@ -421,7 +446,7 @@ class AdminBanDetailScreen extends StatelessWidget {
               ),
               child: Text(
                 rec.note,
-                style: const TextStyle(
+                style: Theme.of(context).textTheme.bodySmall!.copyWith(
                   fontSize: 12.5,
                   color: AdminC.ink,
                   height: 1.5,
@@ -436,9 +461,12 @@ class AdminBanDetailScreen extends StatelessWidget {
               Text.rich(
                 TextSpan(
                   children: [
-                    const TextSpan(
+                    TextSpan(
                       text: 'by ',
-                      style: TextStyle(fontSize: 11, color: AdminC.inkSoft),
+                      style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                        fontSize: 11,
+                        color: AdminC.inkSoft,
+                      ),
                     ),
                     TextSpan(
                       text: rec.by,
@@ -455,9 +483,12 @@ class AdminBanDetailScreen extends StatelessWidget {
                 Text.rich(
                   TextSpan(
                     children: [
-                      const TextSpan(
+                      TextSpan(
                         text: 'expires ',
-                        style: TextStyle(fontSize: 11, color: AdminC.inkSoft),
+                        style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                          fontSize: 11,
+                          color: AdminC.inkSoft,
+                        ),
                       ),
                       TextSpan(
                         text: rec.expires,
@@ -477,7 +508,7 @@ class AdminBanDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(top: 12),
       decoration: BoxDecoration(
@@ -501,9 +532,12 @@ class AdminBanDetailScreen extends StatelessWidget {
               size: 28,
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'No ban history. Clean record ✨',
-              style: TextStyle(color: AdminC.inkSoft, fontSize: 13),
+              style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                color: AdminC.inkSoft,
+                fontSize: 13,
+              ),
             ),
           ],
         ),

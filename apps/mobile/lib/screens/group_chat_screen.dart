@@ -3,6 +3,11 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../features/auth/presentation/providers/auth_provider.dart';
+import '../features/chat/domain/entities/chat_message.dart' as chat_entity;
+import '../features/chat/domain/entities/session_status.dart';
+import '../features/chat/presentation/providers/chat_provider.dart';
+import '../features/matchmaking/presentation/providers/matchmaking_provider.dart';
 import '../theme/app_colors.dart';
 import '../dialogs/leave_room_dialog.dart';
 import '../dialogs/song_dialog.dart';
@@ -31,15 +36,8 @@ const _cardAssets = [
 
 String _pickCard() => _cardAssets[Random().nextInt(_cardAssets.length)];
 
-String _nowTime() {
-  final t = TimeOfDay.fromDateTime(DateTime.now());
-  final h = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
-  final m = t.minute.toString().padLeft(2, '0');
-  return '$h:$m ${t.period.name}';
-}
-
 // ── Message model ──────────────────────────────────────────────────────────
-enum _MsgType { warning, system, me, other, card, gif }
+enum _MsgType { warning, system, me, other, card, gif, gifOther }
 
 class _GroupMsg {
   final _MsgType type;
@@ -102,13 +100,11 @@ class GroupChatScreen extends ConsumerStatefulWidget {
 
 class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
     with TickerProviderStateMixin {
-  bool isLocked = false;
   final Map<String, bool> _friendRequestSent = {};
   final Map<String, bool> _friendAccepted = {};
   final TextEditingController _msgController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
-  bool _isOtherTyping = false;
   Timer? _typingTimer;
   Timer? _friendMsgTimer;
 
@@ -122,39 +118,9 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
   late final AnimationController _songCtrl;
   late final Animation<Offset> _songSlide;
 
-  // Group members — last entry = "Me" → gets avatarState overlays
-  final List<String> members = ['Somtum', 'Kaitom', 'Somjeed', 'Padthai', 'Me'];
-
-  final List<_GroupMsg> messages = [
-    const _GroupMsg(
-      type: _MsgType.warning,
-      text:
-          'Keep it friendly! Please be respectful and protect your personal info.\nReport any suspicious behavior to help keep our community safe.',
-    ),
-    const _GroupMsg(
-      type: _MsgType.system,
-      text: 'Kaitom Hop in',
-      time: '27 April 2026',
-    ),
-    const _GroupMsg(
-      type: _MsgType.other,
-      sender: 'Kaitom',
-      text: 'Hellooooooooooooooo\noooooooooooooooo.',
-      time: '10:00 pm',
-    ),
-    const _GroupMsg(
-      type: _MsgType.other,
-      sender: 'Somjeed',
-      text: 'Hello.',
-      time: '10:05 pm',
-    ),
-    const _GroupMsg(
-      type: _MsgType.me,
-      sender: 'Me',
-      text: 'Hello 🍪🙏🔥😣',
-      time: '10:10 pm',
-    ),
-  ];
+  final List<({_GroupMsg msg, int seq})> _localMessages = [];
+  final List<_GroupMsg> _optimisticMessages = [];
+  String? _pendingGifUrl;
 
   @override
   void initState() {
@@ -176,7 +142,20 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
       begin: const Offset(0, -1),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _songCtrl, curve: Curves.easeOutCubic));
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom();
+      final matchState = ref.read(matchmakingNotifierProvider);
+      final authUser = ref.read(authNotifierProvider).user;
+      final roomId = matchState.roomId;
+      if (authUser == null || roomId == null) return;
+      ref
+          .read(chatNotifierProvider.notifier)
+          .enterSession(
+            sessionId: roomId,
+            currentUserId: authUser.uid,
+            currentUserDisplayName: authUser.displayName,
+          );
+    });
     _friendMsgTimer = Timer(const Duration(seconds: 3), () {
       if (!mounted) return;
       showFriendMessagePopup(
@@ -245,47 +224,47 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
     });
   }
 
-  void _sendMessage() {
-    if (_msgController.text.trim().isEmpty) return;
-    setState(() {
-      messages.add(
-        _GroupMsg(
-          type: _MsgType.me,
-          sender: 'Me',
-          text: _msgController.text.trim(),
-          time: _nowTime(),
-        ),
-      );
-      _isOtherTyping = true;
-    });
-    _msgController.clear();
-    _focusNode.requestFocus();
-    _scrollToBottom();
-    _typingTimer?.cancel();
-    _typingTimer = Timer(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _isOtherTyping = false);
-    });
+  Future<void> _sendMessage() async {
+    if (ref.read(chatNotifierProvider).isSending) return;
+    final notifier = ref.read(chatNotifierProvider.notifier);
+    bool sent = false;
+    if (_pendingGifUrl != null) {
+      final url = _pendingGifUrl!;
+      setState(() {
+        _pendingGifUrl = null;
+        _optimisticMessages.add(_GroupMsg(type: _MsgType.gif, text: url));
+      });
+      await notifier.sendMessage(url);
+      sent = true;
+    }
+    final text = _msgController.text.trim();
+    if (text.isNotEmpty) {
+      setState(() {
+        _optimisticMessages.add(_GroupMsg(type: _MsgType.me, text: text));
+      });
+      notifier.sendMessage(text);
+      notifier.setTyping(false);
+      _typingTimer?.cancel();
+      _msgController.clear();
+      _focusNode.requestFocus();
+      sent = true;
+    }
+    if (sent) _scrollToBottom();
   }
 
   void _sendTopicCard() {
+    final seq = ref.read(chatNotifierProvider).messages.length;
     setState(() {
-      messages.add(_GroupMsg(type: _MsgType.card, text: _pickCard()));
+      _localMessages.add((
+        msg: _GroupMsg(type: _MsgType.card, text: _pickCard()),
+        seq: seq,
+      ));
     });
     _scrollToBottom();
   }
 
-  void _sendGif(String label) {
-    setState(() {
-      messages.add(
-        _GroupMsg(
-          type: _MsgType.gif,
-          sender: 'Me',
-          text: label,
-          time: _nowTime(),
-        ),
-      );
-    });
-    _scrollToBottom();
+  void _sendGif(String url) {
+    setState(() => _pendingGifUrl = url);
   }
 
   void _sendFriendRequest(String targetName) {
@@ -339,14 +318,19 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
   }
 
   void _shuffleTopic() {
+    final seq = ref.read(chatNotifierProvider).messages.length;
     setState(() {
-      messages.add(
-        const _GroupMsg(
+      _localMessages.add((
+        msg: const _GroupMsg(
           type: _MsgType.system,
           text: 'Someone shuffled the topic!',
         ),
-      );
-      messages.add(_GroupMsg(type: _MsgType.card, text: _pickCard()));
+        seq: seq,
+      ));
+      _localMessages.add((
+        msg: _GroupMsg(type: _MsgType.card, text: _pickCard()),
+        seq: seq,
+      ));
     });
     _scrollToBottom();
   }
@@ -463,6 +447,30 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
     );
   }
 
+  static const _kWarning =
+      'Keep it friendly! Please be respectful and protect your personal info.\n'
+      'Report any suspicious behavior to help keep our community safe.';
+
+  static String _formatTime(DateTime t) {
+    final tod = TimeOfDay.fromDateTime(t);
+    final h = tod.hourOfPeriod == 0 ? 12 : tod.hourOfPeriod;
+    final m = tod.minute.toString().padLeft(2, '0');
+    return '$h:$m ${tod.period.name}';
+  }
+
+  _GroupMsg _toGroupDisplay(chat_entity.ChatMessage msg, String? myUid) {
+    final isMe = msg.senderId == myUid;
+    final isGif = msg.text.contains('giphy.com');
+    return _GroupMsg(
+      type: isGif
+          ? (isMe ? _MsgType.gif : _MsgType.gifOther)
+          : (isMe ? _MsgType.me : _MsgType.other),
+      text: msg.text,
+      sender: isMe ? 'Me' : msg.displayName,
+      time: _formatTime(msg.timestamp),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final args =
@@ -475,12 +483,56 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
 
     final avatarState = ref.watch(avatarProvider);
     final userProfile = ref.watch(userProfileProvider);
+    final chatState = ref.watch(chatNotifierProvider);
+    final roomType = args?['roomType'] as String?;
+    final matchState = ref.watch(matchmakingNotifierProvider);
+    final isLocked = matchState.currentRoom?.isLocked ?? (roomType == 'create');
+
+    final myUid =
+        chatState.currentUserId ??
+        ref.watch(authNotifierProvider).user?.uid ??
+        '';
+    final nameMap = <String, String>{
+      for (final m in chatState.messages) m.senderId: m.displayName,
+    };
+    final roomUsers = matchState.currentRoom?.users ?? [];
+    final members = roomUsers.isEmpty
+        ? ['Me']
+        : roomUsers
+              .map((uid) => uid == myUid ? 'Me' : (nameMap[uid] ?? 'User'))
+              .toList();
+
+    ref.listen(chatNotifierProvider.select((s) => s.status), (_, next) {
+      if (next == SessionStatus.disconnected) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    });
+
+    ref.listen(chatNotifierProvider.select((s) => s.messages.length), (
+      prev,
+      next,
+    ) {
+      if ((prev ?? 0) < next) {
+        if (_optimisticMessages.isNotEmpty) {
+          setState(() => _optimisticMessages.clear());
+        }
+        _scrollToBottom();
+      }
+    });
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (bool didPop, Object? result) {
         if (!didPop) {
-          showDialog(context: context, builder: (_) => const LeaveRoomDialog());
+          showDialog(
+            context: context,
+            builder: (_) => LeaveRoomDialog(
+              onLeave: () {
+                ref.read(matchmakingNotifierProvider.notifier).leaveRoom();
+                ref.read(chatNotifierProvider.notifier).forceDisconnect();
+              },
+            ),
+          );
         }
       },
       child: Scaffold(
@@ -488,7 +540,7 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
         body: Column(
           children: [
             // ── Header always rendered last in layout = visually on top ──
-            _buildHeader(roomName, roomId),
+            _buildHeader(roomName, roomId, isLocked),
             // ── Content + slide-down panel clipped together ──
             Expanded(
               child: ClipRect(
@@ -502,11 +554,12 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
                           maxMembers,
                           avatarState,
                           userProfile,
+                          members,
                         ),
                         Expanded(
                           child: Stack(
                             children: [
-                              _buildMessageList(avatarState),
+                              _buildMessageList(avatarState, chatState),
                               Positioned(
                                 top: 0,
                                 left: 0,
@@ -535,13 +588,15 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
                     ),
                     // Barrier — tap outside to close whichever panel is open
                     if (_panelOpen || _songPanelOpen)
-                      GestureDetector(
-                        onTap: _panelOpen ? _closePanel : _closeSongPanel,
-                        behavior: HitTestBehavior.opaque,
-                        child: AnimatedOpacity(
-                          opacity: 1.0,
-                          duration: const Duration(milliseconds: 260),
-                          child: Container(color: Colors.black26),
+                      ExcludeSemantics(
+                        child: GestureDetector(
+                          onTap: _panelOpen ? _closePanel : _closeSongPanel,
+                          behavior: HitTestBehavior.opaque,
+                          child: AnimatedOpacity(
+                            opacity: 1.0,
+                            duration: const Duration(milliseconds: 260),
+                            child: Container(color: Colors.black26),
+                          ),
                         ),
                       ),
                     // Slide-down members panel
@@ -582,7 +637,7 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
   }
 
   // ── Header ────────────────────────────────────────────────────────────────
-  Widget _buildHeader(String roomName, String roomId) {
+  Widget _buildHeader(String roomName, String roomId, bool isLocked) {
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -599,15 +654,28 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Back button
-                _headerBtn(
-                  onTap: () => showDialog(
-                    context: context,
-                    builder: (_) => const LeaveRoomDialog(),
-                  ),
-                  child: SvgPicture.asset(
-                    'assets/images/icons/Back.svg',
-                    width: 24,
-                    height: 24,
+                Semantics(
+                  label: 'End chat',
+                  button: true,
+                  child: _headerBtn(
+                    onTap: () => showDialog(
+                      context: context,
+                      builder: (_) => LeaveRoomDialog(
+                        onLeave: () {
+                          ref
+                              .read(matchmakingNotifierProvider.notifier)
+                              .leaveRoom();
+                          ref
+                              .read(chatNotifierProvider.notifier)
+                              .forceDisconnect();
+                        },
+                      ),
+                    ),
+                    child: SvgPicture.asset(
+                      'assets/images/icons/Back.svg',
+                      width: 24,
+                      height: 24,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -619,7 +687,7 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
                     children: [
                       Text(
                         roomName,
-                        style: const TextStyle(
+                        style: Theme.of(context).textTheme.titleLarge!.copyWith(
                           color: Colors.white,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -627,7 +695,7 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
                       ),
                       Text(
                         'Room ID:   $roomId',
-                        style: const TextStyle(
+                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
                           color: Colors.white70,
                           fontSize: 12,
                         ),
@@ -636,60 +704,75 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
                   ),
                 ),
                 // Lock toggle
-                GestureDetector(
-                  onTap: () => setState(() => isLocked = !isLocked),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 60,
-                    height: 32,
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
-                    decoration: BoxDecoration(
-                      color: isLocked
-                          ? const Color(0xFFBA5F3A)
-                          : const Color(0xFFD9D9D9),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.black12),
-                    ),
-                    child: Stack(
-                      children: [
-                        AnimatedAlign(
-                          duration: const Duration(milliseconds: 200),
-                          alignment: isLocked
-                              ? Alignment.centerRight
-                              : Alignment.centerLeft,
-                          child: Container(
-                            width: 26,
-                            height: 26,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(color: Colors.black12, blurRadius: 4),
-                              ],
-                            ),
-                            child: Icon(
-                              isLocked
-                                  ? Icons.lock_rounded
-                                  : Icons.lock_open_rounded,
-                              size: 16,
-                              color: isLocked
-                                  ? const Color(0xFFBA5F3A)
-                                  : Colors.grey,
+                Semantics(
+                  label: 'Toggle room lock',
+                  button: true,
+                  child: GestureDetector(
+                    onTap: () {
+                      ref
+                          .read(matchmakingNotifierProvider.notifier)
+                          .setRoomLock(isLocked: !isLocked);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 60,
+                      height: 32,
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      decoration: BoxDecoration(
+                        color: isLocked
+                            ? const Color(0xFFBA5F3A)
+                            : const Color(0xFFD9D9D9),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.black12),
+                      ),
+                      child: Stack(
+                        children: [
+                          AnimatedAlign(
+                            duration: const Duration(milliseconds: 200),
+                            alignment: isLocked
+                                ? Alignment.centerRight
+                                : Alignment.centerLeft,
+                            child: Container(
+                              width: 26,
+                              height: 26,
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 4,
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                isLocked
+                                    ? Icons.lock_rounded
+                                    : Icons.lock_open_rounded,
+                                size: 16,
+                                color: isLocked
+                                    ? const Color(0xFFBA5F3A)
+                                    : Colors.grey,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 10),
                 // Member list button
-                _headerBtn(
-                  onTap: _panelOpen ? _closePanel : _openPanel,
-                  child: SvgPicture.asset(
-                    'assets/images/icons/memberlist.svg',
-                    width: 26,
-                    height: 26,
+                Semantics(
+                  label: 'View member list',
+                  button: true,
+                  child: _headerBtn(
+                    onTap: _panelOpen ? _closePanel : _openPanel,
+                    child: SvgPicture.asset(
+                      'assets/images/icons/memberlist.svg',
+                      width: 26,
+                      height: 26,
+                    ),
                   ),
                 ),
               ],
@@ -731,6 +814,7 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
     int maxMembers,
     AvatarState avatarState,
     UserProfileState userProfile,
+    List<String> members,
   ) {
     final count = members.length.clamp(1, 5);
     final preset = _layouts[count];
@@ -769,7 +853,7 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
                     ),
                     child: Text(
                       '${members.length} / $maxMembers',
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                       ),
@@ -805,29 +889,33 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
                           bottom: 0,
                           left: 0,
                           right: 0,
-                          child: GestureDetector(
-                            onTap: () => showDialog(
-                              context: context,
-                              builder: (_) => UserProfileDialog(
-                                username: displayName,
-                                isMe: isMe,
-                                initialAdded:
-                                    !isMe &&
-                                    (_friendRequestSent[displayName] == true),
-                                onAddFriend: isMe
-                                    ? null
-                                    : () => _sendFriendRequest(displayName),
-                                onCancelRequest: isMe
-                                    ? null
-                                    : () => _cancelFriendRequest(displayName),
+                          child: Semantics(
+                            label: 'View user profile',
+                            button: true,
+                            child: GestureDetector(
+                              onTap: () => showDialog(
+                                context: context,
+                                builder: (_) => UserProfileDialog(
+                                  username: displayName,
+                                  isMe: isMe,
+                                  initialAdded:
+                                      !isMe &&
+                                      (_friendRequestSent[displayName] == true),
+                                  onAddFriend: isMe
+                                      ? null
+                                      : () => _sendFriendRequest(displayName),
+                                  onCancelRequest: isMe
+                                      ? null
+                                      : () => _cancelFriendRequest(displayName),
+                                ),
                               ),
-                            ),
-                            child: LayeredAvatar(
-                              boxSize: pos.size,
-                              moodOverlay: isMe ? avatarState.mood : null,
-                              accessoryOverlay: isMe
-                                  ? avatarState.accessory
-                                  : null,
+                              child: LayeredAvatar(
+                                boxSize: pos.size,
+                                moodOverlay: isMe ? avatarState.mood : null,
+                                accessoryOverlay: isMe
+                                    ? avatarState.accessory
+                                    : null,
+                              ),
                             ),
                           ),
                         ),
@@ -914,7 +1002,10 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
             const SizedBox(height: 2),
             Text(
               label,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -923,22 +1014,41 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
   }
 
   // ── Message list ──────────────────────────────────────────────────────────
-  Widget _buildMessageList(AvatarState avatarState) {
-    final itemCount = messages.length + (_isOtherTyping ? 1 : 0);
+  Widget _buildMessageList(AvatarState avatarState, ChatState chatState) {
+    final backendMsgs = chatState.messages
+        .map((m) => _toGroupDisplay(m, chatState.currentUserId))
+        .toList();
+    final merged = <_GroupMsg>[
+      const _GroupMsg(type: _MsgType.warning, text: _kWarning),
+    ];
+    int localIdx = 0;
+    for (int i = 0; i <= backendMsgs.length; i++) {
+      while (localIdx < _localMessages.length &&
+          _localMessages[localIdx].seq <= i) {
+        merged.add(_localMessages[localIdx].msg);
+        localIdx++;
+      }
+      if (i < backendMsgs.length) merged.add(backendMsgs[i]);
+    }
+    final displayMessages = [...merged, ..._optimisticMessages];
+    final isTyping = chatState.typingUsers.isNotEmpty;
+    final itemCount = displayMessages.length + (isTyping ? 1 : 0);
+
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       itemCount: itemCount,
       itemBuilder: (context, i) {
-        if (i == messages.length && _isOtherTyping) {
+        if (i == displayMessages.length && isTyping) {
           return const _GroupTypingIndicator();
         }
-        final msg = messages[i];
+        final msg = displayMessages[i];
         return switch (msg.type) {
           _MsgType.warning => _buildWarning(msg.text),
           _MsgType.system => _buildSystem(msg),
           _MsgType.card => _buildCard(msg.text),
-          _MsgType.gif => _buildGifBubble(msg, avatarState),
+          _MsgType.gif => _buildGifBubble(msg, avatarState, isMe: true),
+          _MsgType.gifOther => _buildGifBubble(msg, avatarState, isMe: false),
           _ => _buildChatBubble(msg, avatarState),
         };
       },
@@ -957,8 +1067,8 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
       child: Text(
         text,
         textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: Color(0xFF836151),
+        style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+          color: const Color(0xFF836151),
           fontSize: 13,
           fontWeight: FontWeight.w500,
         ),
@@ -973,7 +1083,10 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
           const SizedBox(height: 8),
           Text(
             msg.time!,
-            style: const TextStyle(fontSize: 12, color: Colors.black45),
+            style: Theme.of(context).textTheme.bodySmall!.copyWith(
+              fontSize: 12,
+              color: Colors.black.withValues(alpha: 0.60),
+            ),
           ),
           const SizedBox(height: 6),
         ],
@@ -987,7 +1100,10 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
           ),
           child: Text(
             msg.text,
-            style: const TextStyle(fontSize: 12, color: Colors.black54),
+            style: Theme.of(context).textTheme.bodySmall!.copyWith(
+              fontSize: 12,
+              color: Colors.black54,
+            ),
           ),
         ),
         const SizedBox(height: 8),
@@ -1009,17 +1125,22 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
         children: [
           // Avatar (others only)
           if (!isMe) ...[
-            GestureDetector(
-              onTap: () => showDialog(
-                context: context,
-                builder: (_) => UserProfileDialog(
-                  username: msg.sender ?? '',
-                  initialAdded: _friendRequestSent[msg.sender ?? ''] == true,
-                  onAddFriend: () => _sendFriendRequest(msg.sender ?? ''),
-                  onCancelRequest: () => _cancelFriendRequest(msg.sender ?? ''),
+            Semantics(
+              label: 'View user profile',
+              button: true,
+              child: GestureDetector(
+                onTap: () => showDialog(
+                  context: context,
+                  builder: (_) => UserProfileDialog(
+                    username: msg.sender ?? '',
+                    initialAdded: _friendRequestSent[msg.sender ?? ''] == true,
+                    onAddFriend: () => _sendFriendRequest(msg.sender ?? ''),
+                    onCancelRequest: () =>
+                        _cancelFriendRequest(msg.sender ?? ''),
+                  ),
                 ),
+                child: LayeredAvatar(boxSize: 40),
               ),
-              child: LayeredAvatar(boxSize: 40),
             ),
             const SizedBox(width: 8),
           ],
@@ -1034,7 +1155,7 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Text(
                     msg.sender ?? '',
-                    style: const TextStyle(
+                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
@@ -1046,9 +1167,9 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
                   if (isMe) ...[
                     Text(
                       msg.time ?? '',
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.labelSmall!.copyWith(
                         fontSize: 10,
-                        color: Colors.black45,
+                        color: Colors.black.withValues(alpha: 0.60),
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -1069,16 +1190,19 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
                     ),
                     child: Text(
                       msg.text,
-                      style: const TextStyle(fontSize: 15, height: 1.6),
+                      style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                        fontSize: 15,
+                        height: 1.6,
+                      ),
                     ),
                   ),
                   if (!isMe) ...[
                     const SizedBox(width: 6),
                     Text(
                       msg.time ?? '',
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.labelSmall!.copyWith(
                         fontSize: 10,
-                        color: Colors.black45,
+                        color: Colors.black.withValues(alpha: 0.60),
                       ),
                     ),
                   ],
@@ -1104,66 +1228,88 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
     return _TopicCard(assetPath: assetPath, onShuffle: _shuffleTopic);
   }
 
-  Widget _buildGifBubble(_GroupMsg msg, AvatarState avatarState) {
+  Widget _buildGifBubble(
+    _GroupMsg msg,
+    AvatarState avatarState, {
+    required bool isMe,
+  }) {
     final maxW = MediaQuery.of(context).size.width * 0.55;
+    final gifImage = ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.network(
+        msg.text,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => const Padding(
+          padding: EdgeInsets.all(8),
+          child: Text(
+            'GIF',
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 15,
+              color: Color(0xFF4A3228),
+            ),
+          ),
+        ),
+      ),
+    );
+    final gifContainer = Container(
+      constraints: BoxConstraints(maxWidth: maxW),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: isMe ? const Color(0xFFF1CEE4) : const Color(0xFFDCEBCE),
+        borderRadius: BorderRadius.circular(18),
+        border: isMe ? null : Border.all(color: Colors.black12),
+      ),
+      child: gifImage,
+    );
+    final timestamp = Text(
+      msg.time ?? '',
+      style: Theme.of(context).textTheme.labelSmall!.copyWith(
+        fontSize: 10,
+        color: Colors.black.withValues(alpha: 0.60),
+      ),
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisAlignment: isMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Text(
-            msg.time ?? '',
-            style: const TextStyle(fontSize: 10, color: Colors.black45),
-          ),
-          const SizedBox(width: 6),
-          Container(
-            constraints: BoxConstraints(maxWidth: maxW),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1CEE4),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+          if (!isMe) ...[
+            LayeredAvatar(boxSize: 40),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  msg.text,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
-                    color: Color(0xFF4A3228),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.yellowWarm,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text(
-                    'GIF',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF4A3228),
-                      letterSpacing: 0.5,
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    msg.sender ?? '',
+                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [gifContainer, const SizedBox(width: 6), timestamp],
+                ),
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-          LayeredAvatar(
-            boxSize: 40,
-            moodOverlay: avatarState.mood,
-            accessoryOverlay: avatarState.accessory,
-          ),
+          ] else ...[
+            timestamp,
+            const SizedBox(width: 6),
+            gifContainer,
+            const SizedBox(width: 8),
+            LayeredAvatar(
+              boxSize: 40,
+              moodOverlay: avatarState.mood,
+              accessoryOverlay: avatarState.accessory,
+            ),
+          ],
         ],
       ),
     );
@@ -1172,8 +1318,68 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
   // ── Input bar ─────────────────────────────────────────────────────────────
   Widget _buildInputBar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
       color: const Color(0xFF6B5E5B),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_pendingGifUrl != null) _buildGifPreview(),
+          _buildInputRow(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGifPreview() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              _pendingGifUrl!,
+              width: 60,
+              height: 60,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => const SizedBox(
+                width: 60,
+                height: 60,
+                child: Icon(Icons.gif, color: Colors.white, size: 32),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text(
+              'GIF ready to send',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Semantics(
+            label: 'Close GIF preview',
+            button: true,
+            child: GestureDetector(
+              onTap: () => setState(() => _pendingGifUrl = null),
+              child: const Icon(Icons.close, color: Colors.white70, size: 20),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInputRow() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
@@ -1187,12 +1393,26 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
                 maxLines: 5,
                 keyboardType: TextInputType.multiline,
                 textInputAction: TextInputAction.newline,
-                style: const TextStyle(fontSize: 15),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge!.copyWith(fontSize: 15),
                 strutStyle: const StrutStyle(
                   fontSize: 15,
                   height: 1.6,
                   forceStrutHeight: true,
                 ),
+                onChanged: (text) {
+                  _typingTimer?.cancel();
+                  final notifier = ref.read(chatNotifierProvider.notifier);
+                  if (text.isNotEmpty) {
+                    notifier.setTyping(true);
+                    _typingTimer = Timer(const Duration(seconds: 3), () {
+                      notifier.setTyping(false);
+                    });
+                  } else {
+                    notifier.setTyping(false);
+                  }
+                },
                 decoration: InputDecoration(
                   hintText: 'Type here ...',
                   hintStyle: const TextStyle(color: Colors.black38),
@@ -1243,20 +1463,24 @@ class _GroupChatScreenState extends ConsumerState<GroupChatScreen>
             ),
           ),
           const SizedBox(width: 10),
-          GestureDetector(
-            onTap: _sendMessage,
-            child: Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEAC163),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              alignment: Alignment.center,
-              child: SvgPicture.asset(
-                'assets/images/icons/sent.svg',
-                width: 24,
-                height: 24,
+          Semantics(
+            label: 'Send message',
+            button: true,
+            child: GestureDetector(
+              onTap: _sendMessage,
+              child: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAC163),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                alignment: Alignment.center,
+                child: SvgPicture.asset(
+                  'assets/images/icons/sent.svg',
+                  width: 24,
+                  height: 24,
+                ),
               ),
             ),
           ),

@@ -43,11 +43,12 @@ class AdminReportCard extends StatelessWidget {
                           children: [
                             Text(
                               report.reported,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 15,
-                                color: AdminC.ink,
-                              ),
+                              style: Theme.of(context).textTheme.bodyLarge!
+                                  .copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 15,
+                                    color: AdminC.ink,
+                                  ),
                             ),
                             if (report.outcome != null)
                               _OutcomeBadge(outcome: report.outcome!),
@@ -56,7 +57,7 @@ class AdminReportCard extends StatelessWidget {
                       ),
                       Text(
                         report.time,
-                        style: const TextStyle(
+                        style: Theme.of(context).textTheme.labelSmall!.copyWith(
                           fontSize: 11,
                           color: AdminC.inkSoft,
                         ),
@@ -99,11 +100,12 @@ class AdminReportCard extends StatelessWidget {
                             ),
                             child: Text(
                               r,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: AdminC.brownDarker,
-                              ),
+                              style: Theme.of(context).textTheme.labelSmall!
+                                  .copyWith(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AdminC.brownDarker,
+                                  ),
                             ),
                           ),
                         )
@@ -120,7 +122,7 @@ class AdminReportCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         report.room,
-                        style: const TextStyle(
+                        style: Theme.of(context).textTheme.labelSmall!.copyWith(
                           fontSize: 11,
                           color: AdminC.inkSoft,
                         ),
@@ -135,10 +137,8 @@ class AdminReportCard extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           '${report.evidence} attachment${report.evidence > 1 ? 's' : ''}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AdminC.inkSoft,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall!
+                              .copyWith(fontSize: 11, color: AdminC.inkSoft),
                         ),
                       ],
                     ],
@@ -240,7 +240,7 @@ class _AdminReportsTabState extends State<AdminReportsTab> {
                       ),
                       child: Text(
                         e[1],
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: active
@@ -265,7 +265,10 @@ class _AdminReportsTabState extends State<AdminReportsTab> {
             child: Center(
               child: Text(
                 'No reports here. 🌿',
-                style: TextStyle(color: AdminC.inkSoft, fontSize: 13),
+                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                  color: AdminC.inkSoft,
+                  fontSize: 13,
+                ),
               ),
             ),
           ),
@@ -299,7 +302,7 @@ class _OutcomeBadge extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             outcome.label,
-            style: TextStyle(
+            style: Theme.of(context).textTheme.labelSmall!.copyWith(
               fontSize: 10,
               fontWeight: FontWeight.w800,
               color: banned ? Colors.white : AdminC.ink,

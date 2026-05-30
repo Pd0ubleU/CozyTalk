@@ -56,10 +56,15 @@ service cloud.firestore {
                 'hatKey', 'moodKey', 'displayName', 'photoUrl', 'lastSeen',
                 'interest', 'thoughts'
             ])
-        && (!('hatKey' in request.resource.data) || request.resource.data.hatKey is string)
-        && (!('moodKey' in request.resource.data) || request.resource.data.moodKey is string)
+        && (!('hatKey' in request.resource.data) || request.resource.data.hatKey == null || request.resource.data.hatKey is string)
+        && (!('moodKey' in request.resource.data) || request.resource.data.moodKey == null || request.resource.data.moodKey is string)
         && (!('interest' in request.resource.data) || request.resource.data.interest is string)
         && (!('thoughts' in request.resource.data) || request.resource.data.thoughts is string);
+    }
+
+    // ── users/{userId}/blocked ────────────────────────────────────────────────
+    match /users/{userId}/blocked/{blockedId} {
+      allow read, write: if isOwner(userId);
     }
 
     // ── waiting_pool ─────────────────────────────────────────────────────────

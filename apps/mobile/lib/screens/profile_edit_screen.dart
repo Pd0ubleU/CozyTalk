@@ -158,29 +158,38 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                                 valueListenable: _usernameCtrl,
                                 builder: (_, val, _) => Row(
                                   children: [
-                                    const Text(
+                                    Text(
                                       'Username',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 16,
-                                        color: Colors.black,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium!
+                                          .copyWith(
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 16,
+                                            color: Colors.black,
+                                          ),
                                     ),
                                     const SizedBox(width: 8),
-                                    const Text(
+                                    Text(
                                       'Do not use your real name',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Color(0xFFD9453F),
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall!
+                                          .copyWith(
+                                            fontSize: 11,
+                                            color: const Color(0xFFD9453F),
+                                          ),
                                     ),
                                     const Spacer(),
                                     Text(
                                       '${val.text.length}/$_maxUsername',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.black,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall!
+                                          .copyWith(
+                                            fontSize: 12,
+                                            color: Colors.black,
+                                          ),
                                     ),
                                   ],
                                 ),
@@ -193,12 +202,13 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                               ),
                               if (_usernameError) ...[
                                 const SizedBox(height: 4),
-                                const Text(
+                                Text(
                                   '*Username is required',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Color(0xFFD9453F),
-                                  ),
+                                  style: Theme.of(context).textTheme.labelSmall!
+                                      .copyWith(
+                                        fontSize: 11,
+                                        color: const Color(0xFFD9453F),
+                                      ),
                                 ),
                               ],
                               const SizedBox(height: 24),
@@ -210,20 +220,26 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text(
+                                    Text(
                                       'Interest',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 16,
-                                        color: Colors.black,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium!
+                                          .copyWith(
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 16,
+                                            color: Colors.black,
+                                          ),
                                     ),
                                     Text(
                                       '${val.text.length}/$_maxInterest',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.black,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall!
+                                          .copyWith(
+                                            fontSize: 12,
+                                            color: Colors.black,
+                                          ),
                                     ),
                                   ],
                                 ),
@@ -334,13 +350,16 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                                   )
                                 : Text(
                                     'Save',
-                                    style: TextStyle(
-                                      color: isOffline
-                                          ? Colors.grey.shade500
-                                          : Colors.black,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w900,
-                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium!
+                                        .copyWith(
+                                          color: isOffline
+                                              ? Colors.grey.shade500
+                                              : Colors.black,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w900,
+                                        ),
                                   ),
                           ),
                         ),
@@ -371,35 +390,42 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  width: 48,
-                  height: 48,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade300, width: 1.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
+              Semantics(
+                label: 'Go back',
+                button: true,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.grey.shade300,
+                        width: 1.5,
                       ),
-                    ],
-                  ),
-                  child: SvgPicture.asset(
-                    'assets/images/icons/Back.svg',
-                    width: 26,
-                    height: 26,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: SvgPicture.asset(
+                      'assets/images/icons/Back.svg',
+                      width: 26,
+                      height: 26,
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 16),
-              const Text(
+              Text(
                 'Edit Profile',
-                style: TextStyle(
+                style: Theme.of(context).textTheme.headlineSmall!.copyWith(
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
                   color: Colors.white,
@@ -430,7 +456,10 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
             decoration: InputDecoration(
               counterText: '',
               hintText: hintText,
-              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+              hintStyle: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                color: const Color(0xFF757575),
+                fontSize: 14,
+              ),
               filled: true,
               fillColor: Colors.white,
               contentPadding: EdgeInsets.fromLTRB(
@@ -453,15 +482,19 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
             Positioned(
               top: 6,
               right: 6,
-              child: GestureDetector(
-                onTap: () => controller.clear(),
-                child: SvgPicture.asset(
-                  'assets/images/icons/Close.svg',
-                  width: 24,
-                  height: 24,
-                  colorFilter: const ColorFilter.mode(
-                    Colors.grey,
-                    BlendMode.srcIn,
+              child: Semantics(
+                label: 'Clear',
+                button: true,
+                child: GestureDetector(
+                  onTap: () => controller.clear(),
+                  child: SvgPicture.asset(
+                    'assets/images/icons/Close.svg',
+                    width: 24,
+                    height: 24,
+                    colorFilter: const ColorFilter.mode(
+                      Colors.grey,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
               ),

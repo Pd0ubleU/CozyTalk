@@ -57,6 +57,7 @@ class DefaultFirebaseOptions {
     appId: '1:170726022216:android:932eeaa1e0193646700c7d',
     messagingSenderId: '170726022216',
     projectId: 'cozytalk-5d984',
+    authDomain: 'cozytalk-5d984.firebaseapp.com',
     databaseURL:
         'https://cozytalk-5d984-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'cozytalk-5d984.firebasestorage.app',
