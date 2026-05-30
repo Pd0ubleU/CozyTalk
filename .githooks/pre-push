@@ -149,11 +149,20 @@ if ! _emulators_up; then
   fi
 fi
 
+_has_adc() {
+  gcloud auth application-default print-access-token > /dev/null 2>&1
+}
+
 if _emulators_up && [ "$FAIL" -eq 0 ]; then
-  printf "  npm test...              \n\n"
-  if ! (cd "$REPO/functions" && npm test 2>&1); then
-    printf "\n  ✗  Jest tests failed — fix before pushing.\n\n"
-    FAIL=1
+  if _has_adc; then
+    printf "  npm test...              \n\n"
+    if ! (cd "$REPO/functions" && npm test 2>&1); then
+      printf "\n  ✗  Jest tests failed — fix before pushing.\n\n"
+      FAIL=1
+    fi
+  else
+    printf "  npm test...              SKIPPED\n"
+    printf "  (no ADC credentials — run: gcloud auth application-default login)\n"
   fi
 fi
 
