@@ -131,6 +131,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
             controller: _emailController,
             hint: 'Enter your email',
             keyboardType: TextInputType.emailAddress,
+            validator: _validateEmail,
           ),
           const SizedBox(height: 16),
           _label('Password'),
@@ -414,12 +415,13 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     );
   }
 
-  // ignore: unused_element
   String? _validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) return 'Email is required.';
+    final email = value.trim().toLowerCase();
     final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-    if (!emailRegex.hasMatch(value.trim())) {
-      return 'Enter a valid email address.';
+    if (!emailRegex.hasMatch(email)) return 'Enter a valid email address.';
+    if (email.endsWith('@cozytalk.com')) {
+      return 'This email cannot be used to sign up.';
     }
     return null;
   }
