@@ -297,7 +297,7 @@ class _AdminConsoleScreenState extends ConsumerState<AdminConsoleScreen> {
     final pendingCount =
         dashAsync.value?.pendingReports ??
         reportsState.reports.where((r) => r.status == 'pending').length;
-    final onlineCount = dashAsync.value?.onlineUsers ?? 0;
+    final onlineCount = usersState.users.where((u) => u.online).length;
     final bannedCount = dashAsync.value?.bannedUsers ?? banned.length;
 
     return Scaffold(

@@ -31,24 +31,11 @@ abstract class AdminDatasource {
 class AdminDatasourceImpl implements AdminDatasource {
   final FirebaseFirestore _firestore;
   final FirebaseFunctions _functions;
-  Set<String> _onlineUids = {};
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _roomsSub;
 
-  AdminDatasourceImpl(this._firestore, this._functions) {
-    _roomsSub = _firestore
-        .collection('rooms')
-        .where('status', isEqualTo: 'active')
-        .snapshots()
-        .listen((snap) {
-          _onlineUids = {
-            for (final doc in snap.docs)
-              ...(doc.data()['users'] as List? ?? []).cast<String>(),
-          };
-        });
-  }
+  AdminDatasourceImpl(this._firestore, this._functions);
 
   @override
-  void dispose() => _roomsSub?.cancel();
+  void dispose() {}
 
   @override
   Future<AdminDashboardStats> getDashboardStats() async {
@@ -131,23 +118,60 @@ class AdminDatasourceImpl implements AdminDatasource {
 
   @override
   Stream<List<AdminUserModel>> watchUsers() {
-    return _firestore
+    final usersStream = _firestore
         .collection('users')
         .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snap) {
-          return snap.docs.map((doc) {
-            final data = Map<String, dynamic>.from(doc.data());
-            if (data['banHistory'] is List) {
-              data['banHistory'] = (data['banHistory'] as List)
-                  .map((e) => Map<String, dynamic>.from(e as Map))
-                  .toList();
-            }
-            return AdminUserModel.fromJson(
-              data,
-            ).copyWith(uid: doc.id, online: _onlineUids.contains(doc.id));
-          }).toList();
-        });
+        .snapshots();
+
+    final roomsStream = _firestore
+        .collection('rooms')
+        .where('status', isEqualTo: 'active')
+        .snapshots();
+
+    QuerySnapshot<Map<String, dynamic>>? latestUsers;
+    QuerySnapshot<Map<String, dynamic>>? latestRooms;
+
+    late StreamController<List<AdminUserModel>> controller;
+    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? usersSub;
+    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? roomsSub;
+
+    List<AdminUserModel> buildSnapshot() {
+      final onlineUids = <String>{
+        for (final doc in latestRooms?.docs ?? [])
+          ...(doc.data()['users'] as List? ?? []).cast<String>(),
+      };
+      return latestUsers!.docs.map((doc) {
+        final data = Map<String, dynamic>.from(doc.data());
+        if (data['banHistory'] is List) {
+          data['banHistory'] = (data['banHistory'] as List)
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList();
+        }
+        return AdminUserModel.fromJson(
+          data,
+        ).copyWith(uid: doc.id, online: onlineUids.contains(doc.id));
+      }).toList();
+    }
+
+    controller = StreamController<List<AdminUserModel>>(
+      onListen: () {
+        usersSub = usersStream.listen((snap) {
+          latestUsers = snap;
+          if (latestRooms != null) controller.add(buildSnapshot());
+        }, onError: controller.addError);
+
+        roomsSub = roomsStream.listen((snap) {
+          latestRooms = snap;
+          if (latestUsers != null) controller.add(buildSnapshot());
+        }, onError: controller.addError);
+      },
+      onCancel: () {
+        usersSub?.cancel();
+        roomsSub?.cancel();
+      },
+    );
+
+    return controller.stream;
   }
 
   @override
