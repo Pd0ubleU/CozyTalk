@@ -124,8 +124,8 @@ class _MainUIAuthRouter extends ConsumerWidget {
     final authState = ref.watch(authNotifierProvider);
     final status = authState.status;
     if (status == AuthStatus.authenticated) {
-      final email = authState.user?.email ?? '';
-      if (email.endsWith('@cozytalk.com')) {
+      final email = (authState.user?.email ?? '').toLowerCase();
+      if (email.isNotEmpty && email.endsWith('@cozytalk.com')) {
         return const AdminConsoleScreen();
       }
       return const HomeScreen();
