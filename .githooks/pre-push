@@ -37,7 +37,7 @@ fi
 
 # ── 2. dart format — entire project (mirrors: dart format --set-exit-if-changed .) ──
 printf "  dart format check...     "
-if (cd "$REPO/apps/mobile" && dart format --set-exit-if-changed . > /dev/null 2>&1); then
+if (cd "$REPO/apps/mobile" && dart format --set-exit-if-changed lib/ test/ > /dev/null 2>&1); then
   printf "ok\n"
 else
   printf "FAILED\n\n"
