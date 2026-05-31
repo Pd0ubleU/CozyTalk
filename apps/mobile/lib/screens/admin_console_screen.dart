@@ -663,6 +663,19 @@ class _AdminConsoleScreenState extends ConsumerState<AdminConsoleScreen> {
         onOpen: _openReport,
         query: _query,
       ),
+      1 when usersState.status == feat.AdminUsersStatus.loading => const Center(
+        child: CircularProgressIndicator(),
+      ),
+      1 when usersState.status == feat.AdminUsersStatus.error => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            usersState.error ?? 'Failed to load users',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AdminC.inkSoft, fontSize: 13),
+          ),
+        ),
+      ),
       1 => AdminUsersTab(
         users: users,
         query: _query,

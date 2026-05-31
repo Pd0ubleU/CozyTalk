@@ -138,24 +138,35 @@ class AdminDatasourceImpl implements AdminDatasource {
 
     List<AdminUserModel> buildSnapshot() {
       final onlineUids = latestOnlineUids ?? {};
-      return latestUsers!.docs.map((doc) {
-        final data = Map<String, dynamic>.from(doc.data());
-        if (data['banHistory'] is List) {
-          data['banHistory'] = (data['banHistory'] as List)
-              .map((e) => Map<String, dynamic>.from(e as Map))
-              .toList();
-        }
-        return AdminUserModel.fromJson(
-          data,
-        ).copyWith(uid: doc.id, online: onlineUids.contains(doc.id));
-      }).toList();
+      return latestUsers!.docs
+          .where(
+            (doc) =>
+                doc.data()['displayName'] != null &&
+                doc.data()['createdAt'] != null,
+          )
+          .map((doc) {
+            final data = Map<String, dynamic>.from(doc.data());
+            if (data['banHistory'] is List) {
+              data['banHistory'] = (data['banHistory'] as List)
+                  .map((e) => Map<String, dynamic>.from(e as Map))
+                  .toList();
+            }
+            return AdminUserModel.fromJson(
+              data,
+            ).copyWith(uid: doc.id, online: onlineUids.contains(doc.id));
+          })
+          .toList();
     }
 
     controller = StreamController<List<AdminUserModel>>(
       onListen: () {
         usersSub = usersStream.listen((snap) {
           latestUsers = snap;
-          controller.add(buildSnapshot());
+          try {
+            controller.add(buildSnapshot());
+          } catch (e, st) {
+            controller.addError(e, st);
+          }
         }, onError: controller.addError);
 
         statusSub = statusStream.listen((event) {
