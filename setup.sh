@@ -52,10 +52,10 @@ if [[ "$DART_MAJOR" -lt 3 ]] || { [[ "$DART_MAJOR" -eq 3 ]] && [[ "$DART_MINOR" 
   fail "Dart $DART_VER is too old — sdk: ^3.9.0 required  ${DIM}(run: flutter upgrade)${RESET}"
 fi
 
-require node     "node"     "Install Node.js 24+ from https://nodejs.org"
+require node     "node"     "Install Node.js 23+ from https://nodejs.org"
 NODE_MAJOR=$(node --version | grep -oE '^v[0-9]+' | tr -d 'v')
-if [[ "$NODE_MAJOR" -lt 24 ]]; then
-  warn "Node $NODE_MAJOR detected — project targets Node 24 (package.json engines)"
+if [[ "$NODE_MAJOR" -lt 23 ]]; then
+  warn "Node $NODE_MAJOR detected — project targets Node 23+ (package.json engines)"
   info "Upgrade: https://nodejs.org"
 fi
 

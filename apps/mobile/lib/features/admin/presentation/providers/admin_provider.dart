@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/datasources/admin_datasource.dart';
@@ -28,6 +29,7 @@ final _adminDatasourceProvider = Provider<AdminDatasource>((ref) {
   final ds = AdminDatasourceImpl(
     FirebaseFirestore.instance,
     FirebaseFunctions.instanceFor(region: 'us-central1'),
+    FirebaseDatabase.instance,
   );
   ref.onDispose(ds.dispose);
   return ds;

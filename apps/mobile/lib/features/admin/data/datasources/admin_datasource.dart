@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 import '../../domain/entities/admin_blocked_entry.dart';
 import '../../domain/entities/admin_dashboard_stats.dart';
@@ -33,8 +34,9 @@ abstract class AdminDatasource {
 class AdminDatasourceImpl implements AdminDatasource {
   final FirebaseFirestore _firestore;
   final FirebaseFunctions _functions;
+  final FirebaseDatabase _database;
 
-  AdminDatasourceImpl(this._firestore, this._functions);
+  AdminDatasourceImpl(this._firestore, this._functions, this._database);
 
   @override
   void dispose() {}
@@ -125,23 +127,17 @@ class AdminDatasourceImpl implements AdminDatasource {
         .orderBy('createdAt', descending: true)
         .snapshots();
 
-    final roomsStream = _firestore
-        .collection('rooms')
-        .where('status', isEqualTo: 'active')
-        .snapshots();
+    final statusStream = _database.ref('user_status').onValue;
 
     QuerySnapshot<Map<String, dynamic>>? latestUsers;
-    QuerySnapshot<Map<String, dynamic>>? latestRooms;
+    Set<String>? latestOnlineUids;
 
     late StreamController<List<AdminUserModel>> controller;
     StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? usersSub;
-    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? roomsSub;
+    StreamSubscription<DatabaseEvent>? statusSub;
 
     List<AdminUserModel> buildSnapshot() {
-      final onlineUids = <String>{
-        for (final doc in latestRooms?.docs ?? [])
-          ...(doc.data()['users'] as List? ?? []).cast<String>(),
-      };
+      final onlineUids = latestOnlineUids ?? {};
       return latestUsers!.docs.map((doc) {
         final data = Map<String, dynamic>.from(doc.data());
         if (data['banHistory'] is List) {
@@ -159,17 +155,20 @@ class AdminDatasourceImpl implements AdminDatasource {
       onListen: () {
         usersSub = usersStream.listen((snap) {
           latestUsers = snap;
-          if (latestRooms != null) controller.add(buildSnapshot());
+          controller.add(buildSnapshot());
         }, onError: controller.addError);
 
-        roomsSub = roomsStream.listen((snap) {
-          latestRooms = snap;
+        statusSub = statusStream.listen((event) {
+          final val = event.snapshot.value;
+          latestOnlineUids = val == null
+              ? {}
+              : (val as Map).keys.map((k) => k.toString()).toSet();
           if (latestUsers != null) controller.add(buildSnapshot());
         }, onError: controller.addError);
       },
       onCancel: () {
         usersSub?.cancel();
-        roomsSub?.cancel();
+        statusSub?.cancel();
       },
     );
 

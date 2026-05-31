@@ -42,6 +42,7 @@
       }
     },
     "user_status": {
+      ".read": "auth != null && auth.token.email.endsWith('@cozytalk.com')",
       "$uid": {
         ".read": "auth != null && (auth.uid == $uid || root.child('friends').child($uid).child(auth.uid).val() === true)",
         ".write": "auth != null && auth.uid == $uid",
